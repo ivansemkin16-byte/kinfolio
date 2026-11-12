@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, UserPlus, RotateCcw, Trash2 } from 'lucide-react';
+import { Plus, UserPlus, RotateCcw, Trash2, Star } from 'lucide-react';
 import { Person, SortOption } from '../../types/person';
 import { PersonCard } from './PersonCard';
 import { Button } from '../common/Button';
@@ -7,6 +7,7 @@ import { SearchInput } from '../common/SearchInput';
 import { Select } from '../common/Select';
 import { EmptyState } from '../common/EmptyState';
 import { Skeleton } from '../common/Skeleton';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { PageHeader } from '../layout/PageHeader';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -17,6 +18,7 @@ interface PersonListProps {
   loading?: boolean;
   onSelectPerson: (personId: string) => void;
   onAddPerson: () => void;
+  onToggleStar?: (personId: string, nextStarred: boolean) => void;
   onRestorePerson?: (personId: string) => void;
   onLoadDemoData?: () => void;
 }
@@ -28,6 +30,7 @@ export const PersonList: React.FC<PersonListProps> = ({
   loading = false,
   onSelectPerson,
   onAddPerson,
+  onToggleStar,
   onRestorePerson,
   onLoadDemoData,
 }) => {
@@ -35,10 +38,20 @@ export const PersonList: React.FC<PersonListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('updated-desc');
   const [currentTab, setCurrentTab] = useState<'active' | 'trash'>('active');
+  const [onlyStarred, setOnlyStarred] = useState(false);
+
+  const starredCount = useMemo(
+    () => people.filter((p) => Boolean(p.starred)).length,
+    [people]
+  );
 
   const filteredAndSortedPeople = useMemo(() => {
     const listToFilter = currentTab === 'active' ? people : deletedPeople;
     let result = [...listToFilter];
+
+    if (currentTab === 'active' && onlyStarred && starredCount > 0) {
+      result = result.filter((p) => Boolean(p.starred));
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -70,7 +83,7 @@ export const PersonList: React.FC<PersonListProps> = ({
     });
 
     return result;
-  }, [people, deletedPeople, currentTab, searchQuery, sortBy, locale]);
+  }, [people, deletedPeople, currentTab, onlyStarred, starredCount, searchQuery, sortBy, locale]);
 
   return (
     <div className="space-y-7">
@@ -96,49 +109,64 @@ export const PersonList: React.FC<PersonListProps> = ({
         }
       />
 
-      {/* Search & Filter Toolbar */}
+      {/* Index Filter Strip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0 flex-wrap">
           {deletedPeople.length > 0 && (
-            <div className="inline-flex items-center bg-surface-soft border border-border p-1 rounded-full self-start shrink-0">
-              <button
-                type="button"
-                onClick={() => setCurrentTab('active')}
-                className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-[background-color,color] duration-[180ms] ${
-                  currentTab === 'active'
-                    ? 'bg-surface-green text-green-900 font-semibold shadow-soft'
-                    : 'text-secondary hover:text-primary'
-                }`}
-              >
-                {t('personList.activeTab')} ({people.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentTab('trash')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-[background-color,color] duration-[180ms] ${
-                  currentTab === 'trash'
-                    ? 'bg-surface-green text-green-900 font-semibold shadow-soft'
-                    : 'text-secondary hover:text-primary'
-                }`}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('personList.trashTab')} ({deletedPeople.length})</span>
-              </button>
-            </div>
+            <SegmentedControl<'active' | 'trash'>
+              ariaLabel={t('nav.people')}
+              roleMode="tablist"
+              size="sm"
+              value={currentTab}
+              onChange={setCurrentTab}
+              options={[
+                {
+                  value: 'active',
+                  label: t('personList.activeTab'),
+                  badge: people.length,
+                },
+                {
+                  value: 'trash',
+                  label: t('personList.trashTab'),
+                  icon: <Trash2 className="w-3.5 h-3.5" />,
+                  badge: deletedPeople.length,
+                },
+              ]}
+            />
           )}
 
-          <div className="flex-1 max-w-md min-w-0">
+          {currentTab === 'active' && starredCount > 0 && (
+            <SegmentedControl<'all' | 'starred'>
+              ariaLabel={t('personList.starredFilter')}
+              roleMode="radiogroup"
+              size="sm"
+              value={onlyStarred ? 'starred' : 'all'}
+              onChange={(val) => setOnlyStarred(val === 'starred')}
+              options={[
+                { value: 'all', label: t('personList.allFilter') },
+                {
+                  value: 'starred',
+                  label: t('personList.starredFilter'),
+                  icon: <Star className="w-3.5 h-3.5 fill-current text-warning" />,
+                  badge: starredCount,
+                },
+              ]}
+            />
+          )}
+
+          <div className="flex-1 min-w-[200px] max-w-md">
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder={t('personList.searchPlaceholder')}
+              aria-label={t('personList.searchPlaceholder')}
               clearLabel={t('common.clear')}
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto shrink-0">
-          <span className="text-[13px] text-secondary">{t('personList.sortLabel')}</span>
+          <span className="font-mono text-[12px] text-secondary">{t('personList.sortLabel')}</span>
           <Select
             compact
             value={sortBy}
@@ -154,11 +182,11 @@ export const PersonList: React.FC<PersonListProps> = ({
 
       {/* Loading Skeletons */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-5 space-y-4">
+            <div key={i} className="bg-surface border border-border rounded-[4px] p-5 space-y-4">
               <div className="flex items-center gap-3.5">
-                <Skeleton className="w-11 h-11 rounded-lg" />
+                <Skeleton className="w-12 h-12 rounded-[3px]" />
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-3 w-20" />
@@ -171,13 +199,15 @@ export const PersonList: React.FC<PersonListProps> = ({
         </div>
       ) : currentTab === 'active' ? (
         filteredAndSortedPeople.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredAndSortedPeople.map((person) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+            {filteredAndSortedPeople.map((person, index) => (
               <PersonCard
                 key={person.id}
                 person={person}
+                index={index}
                 giftCount={giftCounts[person.id] || 0}
                 onSelect={onSelectPerson}
+                onToggleStar={onToggleStar}
               />
             ))}
           </div>
@@ -218,7 +248,7 @@ export const PersonList: React.FC<PersonListProps> = ({
       ) : (
         /* Trash Tab */
         <div className="space-y-4">
-          <div className="bg-surface-soft border border-border px-4 py-3 rounded-md text-[13px] text-secondary">
+          <div className="bg-surface-soft border border-dashed border-border-strong px-4 py-3 rounded-sm text-[13px] text-secondary">
             {t('personList.trashBanner')}
           </div>
 
@@ -227,12 +257,16 @@ export const PersonList: React.FC<PersonListProps> = ({
               {filteredAndSortedPeople.map((person) => (
                 <div
                   key={person.id}
-                  className="bg-surface border border-border rounded-lg p-4 flex items-center justify-between gap-4"
+                  className="bg-surface border border-border rounded-sm p-4 flex items-center justify-between gap-4 shadow-soft"
                 >
-                  <div>
-                    <h4 className="text-[15px] font-semibold text-primary">{person.name}</h4>
+                  <div className="min-w-0">
+                    <h4 className="font-serif text-[16px] font-semibold text-primary truncate">
+                      {person.name}
+                    </h4>
                     {person.relationship && (
-                      <p className="text-[13px] text-secondary">{person.relationship}</p>
+                      <p className="type-hand text-[17px] text-secondary truncate">
+                        {person.relationship}
+                      </p>
                     )}
                   </div>
                   {onRestorePerson && (

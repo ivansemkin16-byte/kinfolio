@@ -12,19 +12,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   action,
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-border">
-      <div className="space-y-1">
-        <h1 className="text-[30px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.2] text-primary">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-dashed border-border-strong/70">
+      <div className="space-y-1 min-w-0">
+        <h1 className="type-display text-primary">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[14px] sm:text-[15px] text-secondary leading-[1.5]">
+          <p className="type-hand text-[21px] sm:text-[23px] text-secondary leading-[1.2]">
             {subtitle}
           </p>
         )}
       </div>
 
-      {action && <div className="shrink-0 flex items-center gap-2.5">{action}</div>}
+      {action && <div className="shrink-0 flex flex-wrap items-center gap-2.5">{action}</div>}
     </div>
   );
 };

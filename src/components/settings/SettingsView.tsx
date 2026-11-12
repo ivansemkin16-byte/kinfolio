@@ -1,32 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Lock, Download, Upload, Trash2, Info, Check, HardDrive, RefreshCw, Globe } from 'lucide-react';
+import {
+  Shield,
+  Lock,
+  Download,
+  Upload,
+  Trash2,
+  Info,
+  Check,
+  HardDrive,
+  RefreshCw,
+  Globe,
+  Sun,
+  Moon,
+  Monitor,
+  KeyRound,
+} from 'lucide-react';
 import { exportAllData, importDataFromFile, clearAllLocalData } from '../../services/backupService';
 import { settingsRepository } from '../../db/repositories/settingsRepository';
+import { ThemeMode } from '../../types/settings';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 import { Select } from '../common/Select';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { PageHeader } from '../layout/PageHeader';
+import { PasscodeModal, PasscodeModalMode } from '../security/PasscodeModal';
 import { useToast } from '../../hooks/useToast';
+import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 interface SettingsViewProps {
+  hasPasscode: boolean;
+  onPasscodeChange: (hasPasscode: boolean) => void;
+  onAutoLockChange: (minutes: number) => void;
+  onLockNow: () => void;
   onDataReset: () => void;
   onLoadDemoData: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
+  hasPasscode,
+  onPasscodeChange,
+  onAutoLockChange,
+  onLockNow,
   onDataReset,
   onLoadDemoData,
 }) => {
   const { t } = useTranslation();
+  const { themeMode, setThemeMode } = useTheme();
   const [autoLockMinutes, setAutoLockMinutes] = useState('15');
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [isEraseConfirmOpen, setIsEraseConfirmOpen] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
+  const [passcodeModalMode, setPasscodeModalMode] = useState<PasscodeModalMode | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
@@ -39,8 +69,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleAutoLockChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setAutoLockMinutes(val);
-    await settingsRepository.set('autoLockMinutes', val === 'never' ? 0 : parseInt(val, 10));
+    const numeric = val === 'never' ? 0 : parseInt(val, 10);
+    await settingsRepository.set('autoLockMinutes', numeric);
+    onAutoLockChange(numeric);
     showToast(t('toasts.autoLockUpdated'));
+  };
+
+  const handleThemeChange = async (mode: ThemeMode) => {
+    await setThemeMode(mode);
+    const label =
+      mode === 'dark'
+        ? t('settings.themeDark')
+        : mode === 'light'
+        ? t('settings.themeLight')
+        : t('settings.themeSystem');
+    showToast(t('toasts.themeUpdated', { theme: label }));
   };
 
   const handleExport = async () => {
@@ -84,6 +127,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       setIsErasing(true);
       await clearAllLocalData();
+      onPasscodeChange(false);
       showToast(t('toasts.localCleared'));
       setIsEraseConfirmOpen(false);
       onDataReset();
@@ -98,65 +142,132 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     <div className="space-y-7 max-w-3xl pb-8">
       <PageHeader title={t('settings.heading')} subtitle={t('settings.subtitle')} />
 
-      {/* 1. Appearance */}
-      <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
+      {/* 1. Appearance (Theme & Language) */}
+      <section className="bg-surface border border-border-strong/65 rounded-[4px] p-4 sm:p-6 space-y-5 shadow-soft">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-md bg-surface-green flex items-center justify-center text-green-700 shrink-0">
             <Globe className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-primary leading-[1.3]">
-              {t('settings.languageTitle')}
-            </h2>
-            <p className="text-[13.5px] text-secondary mt-0.5">
-              {t('settings.languageDesc')}
-            </p>
+            <h2 className="type-title text-primary">{t('settings.languageTitle')}</h2>
+            <p className="text-[13.5px] text-secondary mt-0.5">{t('settings.languageDesc')}</p>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <span className="text-[14px] font-medium text-primary block">
-              {t('settings.languageLabel')}
-            </span>
-            <p className="text-[13px] text-secondary mt-0.5">{t('settings.languageHint')}</p>
+        <div className="pt-4 border-t border-border divide-y divide-border space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[14px] font-medium text-primary block">
+                {t('settings.themeLabel')}
+              </span>
+              <p className="text-[13px] text-secondary mt-0.5">{t('settings.themeHint')}</p>
+            </div>
+            <SegmentedControl<ThemeMode>
+              ariaLabel={t('settings.themeLabel')}
+              roleMode="radiogroup"
+              size="xs"
+              value={themeMode}
+              onChange={handleThemeChange}
+              options={[
+                {
+                  value: 'system',
+                  label: t('settings.themeSystem'),
+                  icon: <Monitor className="w-3.5 h-3.5" />,
+                },
+                {
+                  value: 'light',
+                  label: t('settings.themeLight'),
+                  icon: <Sun className="w-3.5 h-3.5" />,
+                },
+                {
+                  value: 'dark',
+                  label: t('settings.themeDark'),
+                  icon: <Moon className="w-3.5 h-3.5" />,
+                },
+              ]}
+            />
           </div>
-          <LanguageSwitcher />
+
+          <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[14px] font-medium text-primary block">
+                {t('settings.languageLabel')}
+              </span>
+              <p className="text-[13px] text-secondary mt-0.5">{t('settings.languageHint')}</p>
+            </div>
+            <LanguageSwitcher />
+          </div>
         </div>
       </section>
 
       {/* 2. Privacy & Security */}
-      <section className="bg-surface border border-border rounded-lg p-6 space-y-5">
+      <section className="bg-surface border border-border-strong/65 rounded-[4px] p-4 sm:p-6 space-y-5 shadow-soft">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-md bg-surface-green flex items-center justify-center text-green-700 shrink-0">
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-primary leading-[1.3]">
-              {t('settings.securityTitle')}
-            </h2>
-            <p className="text-[13.5px] text-secondary mt-0.5">
-              {t('settings.securityDesc')}
-            </p>
+            <h2 className="type-title text-primary">{t('settings.securityTitle')}</h2>
+            <p className="text-[13.5px] text-secondary mt-0.5">{t('settings.securityDesc')}</p>
           </div>
         </div>
 
         <div className="pt-4 border-t border-border divide-y divide-border">
-          <div className="pb-4 flex items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <Lock className="w-4 h-4 text-secondary mt-1 shrink-0" />
-              <div>
-                <span className="text-[14px] font-medium text-primary block">
-                  {t('settings.masterPasswordTitle')}
-                </span>
-                <p className="text-[13px] text-secondary mt-0.5 leading-[1.45]">
-                  {t('settings.masterPasswordDesc')}
-                </p>
+          <div className="pb-4 space-y-3.5">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <KeyRound className="w-4 h-4 text-secondary mt-1 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[14px] font-medium text-primary block">
+                    {t('settings.passcodeTitle')}
+                  </span>
+                  <p className="text-[13px] text-secondary mt-0.5 leading-[1.45]">
+                    {t('settings.passcodeDesc')}
+                  </p>
+                </div>
               </div>
+              <Badge size="sm" variant={hasPasscode ? 'success' : 'default'} className="shrink-0">
+                {hasPasscode ? t('settings.passcodeActive') : t('settings.passcodeUnset')}
+              </Badge>
             </div>
-            <Badge size="sm" variant="default" className="shrink-0">
-              {t('settings.phase4Target')}
-            </Badge>
+
+            <div className="flex flex-wrap items-center gap-2.5 pl-6">
+              {!hasPasscode ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setPasscodeModalMode('set')}
+                  icon={<Lock className="w-3.5 h-3.5" />}
+                >
+                  {t('settings.passcodeSetBtn')}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onLockNow}
+                    icon={<Lock className="w-3.5 h-3.5" />}
+                  >
+                    {t('settings.lockNowBtn')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPasscodeModalMode('change')}
+                  >
+                    {t('settings.passcodeChangeBtn')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => setPasscodeModalMode('disable')}
+                  >
+                    {t('settings.passcodeDisableBtn')}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -164,11 +275,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label htmlFor="autolock-select" className="text-[14px] font-medium text-primary block">
                 {t('settings.autoLockLabel')}
               </label>
-              <p className="text-[13px] text-secondary mt-0.5">
-                {t('settings.autoLockDesc')}
-              </p>
+              <p className="text-[13px] text-secondary mt-0.5">{t('settings.autoLockDesc')}</p>
             </div>
-            <div className="sm:w-48 shrink-0">
+            <div className="sm:w-52 shrink-0">
               <Select
                 compact
                 id="autolock-select"
@@ -187,18 +296,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </section>
 
       {/* 3. Backup & Restore */}
-      <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
+      <section className="bg-surface border border-border-strong/65 rounded-[4px] p-4 sm:p-6 space-y-4 shadow-soft">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-md bg-surface-soft border border-border flex items-center justify-center text-primary shrink-0">
             <HardDrive className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-primary leading-[1.3]">
-              {t('settings.backupsTitle')}
-            </h2>
-            <p className="text-[13.5px] text-secondary mt-0.5">
-              {t('settings.backupsDesc')}
-            </p>
+            <h2 className="type-title text-primary">{t('settings.backupsTitle')}</h2>
+            <p className="text-[13.5px] text-secondary mt-0.5">{t('settings.backupsDesc')}</p>
           </div>
         </div>
 
@@ -246,15 +351,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </section>
 
       {/* 4. Data Management */}
-      <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
+      <section className="bg-surface border border-border-strong/65 rounded-[4px] p-4 sm:p-6 space-y-4 shadow-soft">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-md bg-surface-soft border border-border flex items-center justify-center text-danger shrink-0">
+          <div className="w-10 h-10 rounded-md bg-danger-bg border border-danger-border flex items-center justify-center text-danger-text shrink-0">
             <Trash2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-primary leading-[1.3]">
-              {t('settings.dangerTitle')}
-            </h2>
+            <h2 className="type-title text-primary">{t('settings.dangerTitle')}</h2>
             <p className="text-[13.5px] text-secondary mt-0.5 leading-[1.45]">
               {t('settings.dangerDesc')}
             </p>
@@ -282,16 +385,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </section>
 
-      {/* 5. About */}
-      <section className="p-6 bg-surface-soft/75 border border-border rounded-lg space-y-2.5">
-        <div className="flex items-center gap-2 text-primary font-semibold text-[15px]">
+      {/* 5. Colophon / About */}
+      <section className="p-5 sm:p-6 bg-surface-kraft/60 border border-dashed border-border-strong rounded-[4px] space-y-2.5">
+        <div className="flex items-center gap-2 text-primary font-serif font-semibold text-[16px]">
           <Info className="w-4 h-4 text-green-700" />
           <span>{t('settings.aboutTitle')}</span>
         </div>
-        <p className="text-[14px] text-secondary leading-[1.55]">
-          {t('settings.aboutDesc')}
-        </p>
-        <div className="pt-1 flex flex-wrap items-center gap-3 text-[12px] text-muted">
+        <p className="type-hand text-[20px] text-secondary leading-[1.35]">{t('settings.aboutDesc')}</p>
+        <div className="pt-1 flex flex-wrap items-center gap-3 font-mono text-[11px] text-muted">
           <span>{t('settings.aboutFooter1')}</span>
           <span>•</span>
           <span>{t('settings.aboutFooter2')}</span>
@@ -309,6 +410,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         confirmLabel={t('settings.eraseBtn')}
         onConfirm={handleConfirmClearAll}
       />
+
+      {passcodeModalMode && (
+        <PasscodeModal
+          isOpen={!!passcodeModalMode}
+          mode={passcodeModalMode}
+          onClose={() => setPasscodeModalMode(null)}
+          onUpdated={onPasscodeChange}
+        />
+      )}
     </div>
   );
 };

@@ -23,26 +23,30 @@ export const PersonAvatar: React.FC<PersonAvatarProps> = ({
     .toUpperCase();
 
   const sizeStyles = {
-    sm: 'w-9 h-9 text-[13px] rounded-md',
-    md: 'w-11 h-11 text-[15px] rounded-lg',
-    lg: 'w-14 h-14 text-[18px] rounded-lg',
-    xl: 'w-[68px] h-[68px] text-[22px] rounded-xl',
+    sm: 'w-9 h-9 text-[13px]',
+    md: 'w-12 h-12 text-[16px]',
+    lg: 'w-14 h-14 text-[19px]',
+    xl: 'w-[76px] h-[76px] text-[24px]',
   };
 
   if (photoUrl) {
     return (
-      <img
-        src={photoUrl}
-        alt={name}
-        className={`object-cover border border-border bg-surface-soft shrink-0 ${sizeStyles[size]} ${className}`}
-      />
+      <div
+        className={`p-1 bg-surface border border-border-strong/75 rounded-[3px] shadow-soft shrink-0 ${sizeStyles[size]} ${className}`}
+      >
+        <img
+          src={photoUrl}
+          alt={name}
+          className="w-full h-full object-cover rounded-[2px]"
+        />
+      </div>
     );
   }
 
   return (
     <div
       aria-hidden="true"
-      className={`bg-surface-green text-green-900 border border-green-300/60 flex items-center justify-center font-semibold tracking-tight shrink-0 ${sizeStyles[size]} ${className}`}
+      className={`bg-surface-kraft text-primary border border-border-strong/80 rounded-[4px] flex items-center justify-center font-serif font-semibold tracking-tight shrink-0 shadow-soft ${sizeStyles[size]} ${className}`}
     >
       {initials || '?'}
     </div>

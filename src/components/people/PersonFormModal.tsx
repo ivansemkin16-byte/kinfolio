@@ -40,6 +40,7 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (initialPerson) {
       setName(initialPerson.name);
       setRelationship(initialPerson.relationship || '');
@@ -63,7 +64,8 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
     }
     setError('');
     setShowUnsavedConfirm(false);
-  }, [initialPerson, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPerson?.id, isOpen]);
 
   const isDirty = (() => {
     if (!isOpen) return false;
@@ -170,10 +172,20 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
         title={initialPerson ? t('personForm.editTitle') : t('personForm.addTitle')}
         subtitle={t('personForm.subtitle')}
         maxWidth="md"
+        footer={
+          <div className="flex items-center justify-end gap-2.5">
+            <Button type="button" variant="ghost" onClick={handleAttemptClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" form="person-form" variant="primary">
+              {initialPerson ? t('personForm.saveChanges') : t('personForm.createPerson')}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="person-form" onSubmit={handleSubmit} className="space-y-3.5">
           {/* Avatar Photo Upload Row */}
-          <div className="flex items-center gap-4 pb-2">
+          <div className="flex items-center gap-4 pb-1">
             <PersonAvatar name={name || '?'} photoUrl={photoUrl} size="lg" />
             <div className="space-y-1.5">
               <span className="text-[13px] font-medium text-primary block">
@@ -282,15 +294,6 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
             onChange={(e) => setAllergiesInput(e.target.value)}
             hint={t('personForm.allergiesHint')}
           />
-
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
-            <Button type="button" variant="ghost" onClick={handleAttemptClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" variant="primary">
-              {initialPerson ? t('personForm.saveChanges') : t('personForm.createPerson')}
-            </Button>
-          </div>
         </form>
       </Modal>
 

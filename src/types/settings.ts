@@ -1,7 +1,9 @@
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 export interface AppSettings {
   autoLockMinutes: number; // e.g. 5, 15, 30, 60, 0 (never)
   hasLoadedDemoData: boolean;
-  theme: 'light';
+  theme: ThemeMode;
   language?: 'en' | 'ru';
   version: number;
   lastBackupAt?: string;

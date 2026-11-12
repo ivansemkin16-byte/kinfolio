@@ -14,13 +14,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-14 px-6 bg-surface-soft/60 rounded-lg border border-border my-4">
+    <div className="flex flex-col items-center justify-center text-center py-12 px-6 bg-surface/85 rounded-md border border-dashed border-border-strong my-4 shadow-soft">
       {icon && (
-        <div className="w-12 h-12 rounded-full bg-surface-green text-green-900 flex items-center justify-center mb-4 border border-green-300/40">
+        <div className="w-11 h-11 rounded-full bg-surface-kraft text-primary flex items-center justify-center mb-3.5 border border-border-strong/60">
           {icon}
         </div>
       )}
-      <h3 className="text-[17px] font-semibold text-primary leading-[1.3]">{title}</h3>
+      <h3 className="type-title text-primary">{title}</h3>
       <p className="text-[14px] text-secondary max-w-md mt-2 mb-6 leading-[1.55]">
         {description}
       </p>

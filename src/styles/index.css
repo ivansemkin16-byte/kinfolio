@@ -3,44 +3,153 @@
 @tailwind utilities;
 
 :root {
-  /* Base surfaces & borders */
-  --color-background: #F6F7F2;
-  --color-surface: #FFFFFF;
-  --color-surface-soft: #F0F3EB;
-  --color-surface-green: #E8EEE4;
-  --color-border: #E5E8DF;
+  color-scheme: light;
 
-  /* Green identity palette */
-  --color-green-900: #34483A;
-  --color-green-700: #526B56;
-  --color-green-600: #69836A;
-  --color-green-300: #B8C9B5;
-  --color-green-100: #E8EEE4;
+  /* Sunlit Desk & Archival Paper */
+  --color-desk: #E2DAC8;
+  --color-cover-leather: #2D2620;
+  --color-background: #FBF7EE;
+  --color-surface: #FFFDF7;
+  --color-surface-soft: #F3ECE0;
+  --color-surface-kraft: #ECE0C9;
+  --color-surface-green: #E2EAD9;
+  --color-receipt-bg: #FCF9F2;
+  --color-border: #DDD3C0;
+  --color-border-strong: #BFB39C;
+  --color-grid-line: rgba(132, 118, 96, 0.11);
 
-  /* Typography colors */
-  --color-text-primary: #292E29;
-  --color-text-secondary: #737B70;
-  --color-text-muted: #9AA095;
-  --color-text-inverse: #FFFFFF;
+  /* Translucent paper / washi / popover surfaces */
+  --color-chrome: rgba(251, 247, 238, 0.88);
+  --color-chrome-heavy: rgba(245, 239, 226, 0.94);
+  --color-popover: rgba(255, 253, 247, 0.96);
+  --color-chrome-edge: rgba(255, 255, 255, 0.65);
+  --color-scrim: rgba(30, 24, 18, 0.42);
+  --color-washi: rgba(216, 200, 168, 0.56);
+  --color-washi-stripe: rgba(164, 134, 96, 0.16);
 
-  /* Semantic colors */
-  --color-success: #66836A;
-  --color-warning: #B58B55;
-  --color-danger: #B76E67;
-  --color-info: #738A91;
+  /* Botanical Sage Ink Palette */
+  --color-green-900: #253A2B;
+  --color-green-700: #3E5A45;
+  --color-green-600: #55725B;
+  --color-green-300: #B2C2AA;
+  --color-green-100: #E2EAD9;
 
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  /* Primary Ink Button */
+  --color-btn-primary: #2D2620;
+  --color-btn-primary-hover: #1E1915;
+  --color-btn-primary-text: #FAF6EC;
 
-  /* Shadows */
-  --shadow-soft: 0 2px 10px rgba(41, 46, 41, 0.04);
-  --shadow-modal: 0 12px 32px rgba(41, 46, 41, 0.09);
+  /* Ink Typography (WCAG AA calibrated on cream paper) */
+  --color-text-primary: #231E19;
+  --color-text-secondary: #5B5247;
+  --color-text-muted: #706659;
+  --color-text-inverse: #FAF6EC;
 
-  /* Transitions */
-  --transition-fast: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Stamp & Slip Semantic States */
+  --color-success: #3E5A45;
+  --color-warning: #9A6B29;
+  --color-warning-bg: #FAF0D8;
+  --color-warning-text: #744D18;
+  --color-warning-border: rgba(154, 107, 41, 0.35);
+
+  --color-danger: #A6382E;
+  --color-danger-bg: #FAECE9;
+  --color-danger-text: #8D2B22;
+  --color-danger-border: rgba(166, 56, 46, 0.38);
+
+  --color-info: #466570;
+  --color-info-bg: #E8F0F2;
+  --color-info-text: #35505A;
+  --color-info-border: rgba(70, 101, 112, 0.32);
+
+  /* Sticky note slip palette */
+  --note-yellow-bg: #FBF1C8;
+  --note-yellow-border: #E6D596;
+  --note-pink-bg: #FCE6E2;
+  --note-pink-border: #E8C1BA;
+  --note-sage-bg: #E5EFE0;
+  --note-sage-border: #C1D3B9;
+  --note-blue-bg: #E5EFF4;
+  --note-blue-border: #BFD2DC;
+
+  /* Paper Bookmark Tab Colors */
+  --tab-people: #DCE5D5;
+  --tab-gifts: #F5E5B8;
+  --tab-search: #F3D9D2;
+  --tab-settings: #DCE4E8;
+
+  /* Crisp tactile paper radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Tactile paper shadows */
+  --shadow-soft: 0 1px 2px rgba(45, 38, 32, 0.08), 0 3px 10px rgba(45, 38, 32, 0.05);
+  --shadow-card: 0 2px 5px rgba(45, 38, 32, 0.09), 0 6px 16px rgba(45, 38, 32, 0.05);
+  --shadow-modal: 0 20px 52px rgba(26, 20, 15, 0.24), 0 2px 8px rgba(26, 20, 15, 0.10);
+  --shadow-book: 0 18px 48px rgba(38, 30, 22, 0.18), 0 4px 12px rgba(38, 30, 22, 0.10);
+
+  --modal-depth: 0;
+}
+
+/* Evening / Night Desk: warm walnut table + gently dimmed candlelit archival paper */
+:root[data-theme='dark'] {
+  color-scheme: light;
+
+  --color-desk: #181512;
+  --color-cover-leather: #0F0D0B;
+  --color-background: #EFE7D4;
+  --color-surface: #F4EDE0;
+  --color-surface-soft: #E7DEC8;
+  --color-surface-kraft: #DFD2B7;
+  --color-surface-green: #D8E2CE;
+  --color-receipt-bg: #F3EBDA;
+  --color-border: #CEBFA7;
+  --color-border-strong: #AD9D82;
+  --color-grid-line: rgba(112, 96, 74, 0.12);
+
+  --color-chrome: rgba(239, 231, 212, 0.90);
+  --color-chrome-heavy: rgba(232, 223, 203, 0.95);
+  --color-popover: rgba(244, 237, 224, 0.97);
+  --color-chrome-edge: rgba(255, 250, 238, 0.5);
+  --color-scrim: rgba(12, 10, 8, 0.62);
+  --color-washi: rgba(198, 178, 144, 0.62);
+  --color-washi-stripe: rgba(132, 102, 68, 0.2);
+
+  --color-green-900: #223527;
+  --color-green-700: #38523E;
+  --color-green-600: #4E6A53;
+  --color-green-300: #9EB197;
+  --color-green-100: #D8E2CE;
+
+  --color-btn-primary: #26201B;
+  --color-btn-primary-hover: #171310;
+  --color-btn-primary-text: #F4EDE0;
+
+  --color-text-primary: #211C17;
+  --color-text-secondary: #544B40;
+  --color-text-muted: #695E51;
+  --color-text-inverse: #F4EDE0;
+
+  --note-yellow-bg: #F1E3AF;
+  --note-yellow-border: #D4C284;
+  --note-pink-bg: #F2D7D2;
+  --note-pink-border: #D5AFAA;
+  --note-sage-bg: #DCE6D5;
+  --note-sage-border: #B5C7AC;
+  --note-blue-bg: #DAE4EA;
+  --note-blue-border: #B0C3CD;
+
+  --tab-people: #D5E0CA;
+  --tab-gifts: #EAD8A4;
+  --tab-search: #E9CCC4;
+  --tab-settings: #D0D9DD;
+
+  --shadow-soft: 0 2px 6px rgba(10, 8, 6, 0.14);
+  --shadow-card: 0 4px 12px rgba(10, 8, 6, 0.16);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 250, 238, 0.08);
+  --shadow-book: 0 26px 68px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 @layer base {
@@ -49,22 +158,25 @@
   }
 
   html {
-    color-scheme: light;
+    font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    transition: background-color 240ms ease, color 240ms ease;
   }
 
   body {
-    background-color: var(--color-background);
+    background-color: var(--color-desk);
+    background-image: radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.12), transparent 55%),
+      radial-gradient(circle at 80% 85%, rgba(0, 0, 0, 0.07), transparent 55%);
     color: var(--color-text-primary);
-    font-size: 14px;
+    font-size: 0.9375rem;
     line-height: 1.55;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Subtle custom scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -75,18 +187,205 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #D4DBD0;
+    background: var(--color-border-strong);
     border-radius: 9999px;
   }
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: #B8C9B5;
+@layer components {
+  /* Literary editorial typography scale */
+  .type-display {
+    font-family: 'Lora', Georgia, serif;
+    font-size: clamp(1.75rem, 2.8vw, 2.25rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .type-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.125rem;
+    line-height: 1.28;
+    letter-spacing: -0.012em;
+    font-weight: 600;
+  }
+
+  .type-hand {
+    font-family: 'Caveat', cursive, serif;
+    letter-spacing: 0.005em;
+  }
+
+  .type-receipt {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .type-caption {
+    font-size: 0.75rem;
+    line-height: 1.38;
+    letter-spacing: 0.012em;
+  }
+
+  /* 5mm archival notebook grid paper */
+  .paper-grid {
+    background-color: var(--color-background);
+    background-image:
+      linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Ruled lined paper for search / slips */
+  .paper-ruled {
+    background-color: var(--color-surface);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 29px,
+      var(--color-grid-line) 29px,
+      var(--color-grid-line) 30px
+    );
+  }
+
+  /* Translucent Washi Tape Strip */
+  .washi-tape {
+    background-color: var(--color-washi);
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      var(--color-washi-stripe) 4px,
+      var(--color-washi-stripe) 8px
+    );
+    box-shadow: 0 1px 2px rgba(45, 38, 32, 0.12);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Rubber Ink Stamp */
+  .ink-stamp {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-style: solid;
+    border-width: 1.5px;
+  }
+
+  /* Thermal / Kraft Receipt Edge */
+  .receipt-slip {
+    position: relative;
+    background-color: var(--color-receipt-bg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .receipt-slip::before,
+  .receipt-slip::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background-size: 12px 6px;
+    background-repeat: repeat-x;
+    pointer-events: none;
+  }
+
+  .receipt-slip::before {
+    top: -5px;
+    background-image: linear-gradient(135deg, transparent 50%, var(--color-receipt-bg) 50%),
+      linear-gradient(225deg, transparent 50%, var(--color-receipt-bg) 50%);
+  }
+
+  .receipt-slip::after {
+    bottom: -5px;
+    background-image: linear-gradient(315deg, transparent 50%, var(--color-receipt-bg) 50%),
+      linear-gradient(45deg, transparent 50%, var(--color-receipt-bg) 50%);
+  }
+
+  /* Colored Sticky Notes */
+  .sticky-yellow {
+    background-color: var(--note-yellow-bg);
+    border-color: var(--note-yellow-border);
+  }
+
+  .sticky-pink {
+    background-color: var(--note-pink-bg);
+    border-color: var(--note-pink-border);
+  }
+
+  .sticky-sage {
+    background-color: var(--note-sage-bg);
+    border-color: var(--note-sage-border);
+  }
+
+  .sticky-blue {
+    background-color: var(--note-blue-bg);
+    border-color: var(--note-blue-border);
+  }
+
+  /* Center Book Spine Shadow on 2-page spread */
+  .book-spine-gutter {
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(60, 48, 34, 0.04) 40%,
+      rgba(40, 30, 20, 0.12) 50%,
+      rgba(60, 48, 34, 0.04) 60%,
+      transparent 100%
+    );
+  }
+
+  /* Translucent paper materials */
+  .material-chrome {
+    background-color: var(--color-chrome);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
+
+  .material-chrome-heavy {
+    background-color: var(--color-chrome-heavy);
+    backdrop-filter: blur(22px) saturate(135%);
+    -webkit-backdrop-filter: blur(22px) saturate(135%);
+  }
+
+  .material-popover {
+    background-color: var(--color-popover);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+  }
+
+  .material-sheet {
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-modal);
+  }
+
+  .scroll-edge-header {
+    border-bottom: 1px solid transparent;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .scroll-edge-header[data-scrolled='true'] {
+    border-bottom-color: var(--color-border);
+    box-shadow: 0 6px 18px -10px rgba(45, 38, 32, 0.18);
+  }
+
+  .app-shell-depth {
+    transform-origin: center top;
+  }
+
+  .app-shell-depth[data-modal-active='true'] {
+    transform: scale(calc(1 - var(--modal-depth, 0) * 0.022));
+    border-radius: calc(var(--modal-depth, 0) * 12px);
+    overflow: hidden;
   }
 }
 
 @layer utilities {
   .pb-safe {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -98,7 +397,44 @@
   }
 }
 
+@media (prefers-reduced-transparency: reduce) {
+  .material-chrome,
+  .material-chrome-heavy,
+  .material-popover,
+  .washi-tape {
+    background-color: var(--color-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-theme='dark'] {
+    --color-border: #8B7E6A;
+    --color-text-secondary: #383027;
+    --color-text-muted: #4C4237;
+  }
+
+  .material-chrome,
+  .material-chrome-heavy,
+  .material-popover {
+    background-color: var(--color-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none !important;
+  }
+
+  .app-shell-depth {
+    transform: none !important;
+    border-radius: 0 !important;
+  }
+
   *,
   *::before,
   *::after {

@@ -8,14 +8,14 @@ interface DetailGroupProps {
 
 export const DetailGroup: React.FC<DetailGroupProps> = ({ title, action, children }) => {
   return (
-    <section className="bg-surface border border-border rounded-lg p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
-        <h3 className="text-[12px] font-semibold text-secondary uppercase tracking-[0.06em]">
+    <section className="receipt-slip border border-border-strong/65 rounded-[2px] px-4 sm:px-5 py-4">
+      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-dashed border-border-strong/70">
+        <h3 className="font-mono text-[11px] font-semibold text-secondary uppercase tracking-[0.08em]">
           {title}
         </h3>
         {action && <div>{action}</div>}
       </div>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-dotted divide-border-strong/60">{children}</div>
     </section>
   );
 };
@@ -32,9 +32,15 @@ export const DetailItem: React.FC<DetailItemProps> = ({
   emptyText = '—',
 }) => {
   return (
-    <div className="py-3.5 first:pt-4 last:pb-1 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4">
-      <span className="text-[13px] font-medium text-secondary shrink-0">{label}</span>
-      <span className={`text-[15px] leading-[1.45] ${value ? 'font-semibold text-primary' : 'text-muted'}`}>
+    <div className="py-2.5 flex items-baseline justify-between gap-3">
+      <span className="font-mono text-[11.5px] uppercase tracking-[0.04em] text-secondary shrink-0">
+        {label}
+      </span>
+      <span
+        className={`font-mono text-[13px] text-right leading-[1.4] tabular-nums break-words ${
+          value ? 'font-semibold text-primary' : 'text-muted'
+        }`}
+      >
         {value || emptyText}
       </span>
     </div>

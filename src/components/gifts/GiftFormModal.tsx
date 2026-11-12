@@ -45,6 +45,7 @@ export const GiftFormModal: React.FC<GiftFormModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (initialGift) {
       setPersonId(initialGift.personId);
       setTitle(initialGift.title);
@@ -68,7 +69,9 @@ export const GiftFormModal: React.FC<GiftFormModalProps> = ({
     }
     setError('');
     setShowUnsavedConfirm(false);
-  }, [initialGift, defaultPersonId, people, isOpen]);
+    // Reset only when modal opens or edited item/default target changes (not when `people` refreshes)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialGift?.id, defaultPersonId, isOpen]);
 
   const isDirty = (() => {
     if (!isOpen) return false;
@@ -149,8 +152,18 @@ export const GiftFormModal: React.FC<GiftFormModalProps> = ({
         title={initialGift ? t('giftForm.editTitle') : t('giftForm.addTitle')}
         subtitle={t('giftForm.subtitle')}
         maxWidth="md"
+        footer={
+          <div className="flex items-center justify-end gap-2.5">
+            <Button type="button" variant="ghost" onClick={handleAttemptClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" form="gift-form" variant="primary">
+              {initialGift ? t('giftForm.updateGift') : t('giftForm.saveGift')}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="gift-form" onSubmit={handleSubmit} className="space-y-4">
           <Select
             label={t('giftForm.recipientLabel')}
             value={personId}
@@ -239,7 +252,7 @@ export const GiftFormModal: React.FC<GiftFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setImageUrl(undefined)}
-                  className="absolute inset-0 bg-[#292E29]/55 text-inverse flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  className="absolute inset-0 bg-[var(--color-scrim)] text-white flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                   aria-label={t('giftForm.removePhoto')}
                   title={t('giftForm.removePhoto')}
                 >
@@ -277,15 +290,6 @@ export const GiftFormModal: React.FC<GiftFormModalProps> = ({
             <option value="given">{t('giftForm.statusOptionGiven')}</option>
             <option value="archived">{t('giftForm.statusOptionArchived')}</option>
           </Select>
-
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
-            <Button type="button" variant="ghost" onClick={handleAttemptClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" variant="primary">
-              {initialGift ? t('giftForm.updateGift') : t('giftForm.saveGift')}
-            </Button>
-          </div>
         </form>
       </Modal>
 

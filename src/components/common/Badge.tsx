@@ -15,20 +15,21 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   dot = false,
 }) => {
-  const baseStyles = 'inline-flex items-center font-medium rounded-sm transition-colors';
+  const baseStyles =
+    'inline-flex items-center font-mono font-medium rounded-[3px] transition-colors tabular-nums tracking-[0.02em]';
 
   const sizeStyles = {
-    sm: 'text-[12px] px-2 py-0.5 gap-1.5 leading-[1.35]',
-    md: 'text-[12.5px] px-2.5 py-1 gap-1.5 leading-[1.35]',
+    sm: 'text-[11px] px-2 py-0.5 gap-1.5 leading-[1.35]',
+    md: 'text-[11.5px] px-2.5 py-0.5 gap-1.5 leading-[1.35]',
   };
 
   const variantStyles = {
     default: 'bg-surface-soft text-secondary border border-border',
-    accent: 'bg-surface-green text-green-900 border border-green-300/60',
-    success: 'bg-surface-green text-green-900 border border-green-300/60',
-    warning: 'bg-[#FAF4E8] text-[#8B6735] border border-warning/35',
-    danger: 'bg-[#FAF0EF] text-[#964F49] border border-danger/35',
-    info: 'bg-[#EEF3F4] text-[#536B72] border border-info/30',
+    accent: 'bg-surface-green text-green-900 border border-green-300/80',
+    success: 'bg-surface-green text-green-900 border border-green-300/80',
+    warning: 'bg-warning-bg text-warning-text border border-warning-border',
+    danger: 'bg-danger-bg text-danger-text border border-danger-border uppercase tracking-[0.05em]',
+    info: 'bg-info-bg text-info-text border border-info-border',
   };
 
   const dotStyles = {

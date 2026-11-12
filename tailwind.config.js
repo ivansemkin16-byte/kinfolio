@@ -4,16 +4,24 @@ export default {
   theme: {
     extend: {
       colors: {
+        desk: 'var(--color-desk)',
         canvas: 'var(--color-background)',
         surface: 'var(--color-surface)',
         'surface-soft': 'var(--color-surface-soft)',
+        'surface-kraft': 'var(--color-surface-kraft)',
         'surface-green': 'var(--color-surface-green)',
         'surface-subtle': 'var(--color-surface-soft)',
+        'receipt-bg': 'var(--color-receipt-bg)',
+        'cover-leather': 'var(--color-cover-leather)',
 
         primary: 'var(--color-text-primary)',
         secondary: 'var(--color-text-secondary)',
         muted: 'var(--color-text-muted)',
         inverse: 'var(--color-text-inverse)',
+
+        'btn-primary': 'var(--color-btn-primary)',
+        'btn-primary-hover': 'var(--color-btn-primary-hover)',
+        'btn-primary-text': 'var(--color-btn-primary-text)',
 
         green: {
           900: 'var(--color-green-900)',
@@ -33,47 +41,38 @@ export default {
         border: {
           subtle: 'var(--color-border)',
           DEFAULT: 'var(--color-border)',
-          strong: 'var(--color-green-300)',
+          strong: 'var(--color-border-strong)',
         },
 
         success: 'var(--color-success)',
         warning: 'var(--color-warning)',
-        danger: 'var(--color-danger)',
-        info: 'var(--color-info)',
+        'warning-bg': 'var(--color-warning-bg)',
+        'warning-text': 'var(--color-warning-text)',
+        'warning-border': 'var(--color-warning-border)',
 
-        status: {
-          idea: '#F0F3EB',
-          bought: '#EAF0F2',
-          given: '#E8EEE4',
-          archived: '#EFEFEA',
-          danger: '#FAF0EF',
-          'danger-text': '#B76E67',
-        },
+        danger: 'var(--color-danger)',
+        'danger-bg': 'var(--color-danger-bg)',
+        'danger-text': 'var(--color-danger-text)',
+        'danger-border': 'var(--color-danger-border)',
+
+        info: 'var(--color-info)',
+        'info-bg': 'var(--color-info-bg)',
+        'info-text': 'var(--color-info-text)',
+        'info-border': 'var(--color-info-border)',
       },
       fontFamily: {
-        sans: [
-          '"Plus Jakarta Sans"',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          'sans-serif',
-        ],
-        display: [
-          '"Plus Jakarta Sans"',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          'sans-serif',
-        ],
-        serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+        sans: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        serif: ['"Lora"', 'Georgia', 'Charter', 'serif'],
+        display: ['"Lora"', 'Georgia', 'Charter', 'serif'],
+        hand: ['"Caveat"', 'cursive', 'serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
         subtle: 'var(--shadow-soft)',
         soft: 'var(--shadow-soft)',
-        card: '0 4px 16px rgba(41, 46, 41, 0.05)',
+        card: 'var(--shadow-card)',
         modal: 'var(--shadow-modal)',
+        book: 'var(--shadow-book)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

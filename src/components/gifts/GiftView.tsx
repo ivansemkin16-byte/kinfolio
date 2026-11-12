@@ -7,6 +7,7 @@ import { Button } from '../common/Button';
 import { Select } from '../common/Select';
 import { EmptyState } from '../common/EmptyState';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { PageHeader } from '../layout/PageHeader';
 import { GiftCard } from './GiftCard';
 import { useTranslation } from '../../i18n/LanguageContext';
@@ -32,7 +33,7 @@ export const GiftView: React.FC<GiftViewProps> = ({
 }) => {
   const { t, locale } = useTranslation();
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>('all');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<GiftStatus | 'all'>('all');
   const [selectedOccasionFilter, setSelectedOccasionFilter] = useState<string>('all');
   const [giftToDelete, setGiftToDelete] = useState<GiftWithRecipient | null>(null);
 
@@ -55,15 +56,13 @@ export const GiftView: React.FC<GiftViewProps> = ({
     });
   }, [gifts, selectedPersonFilter, selectedStatusFilter, selectedOccasionFilter]);
 
-  const getStatusLabel = (status: GiftStatus | 'all') => {
-    switch (status) {
-      case 'all': return t('gifts.statusAll');
-      case 'idea': return t('gifts.statusIdea');
-      case 'bought': return t('gifts.statusBought');
-      case 'given': return t('gifts.statusGiven');
-      case 'archived': return t('gifts.statusArchived');
-    }
-  };
+  const statusOptions = [
+    { value: 'all' as const, label: t('gifts.statusAll') },
+    { value: 'idea' as const, label: t('gifts.statusIdea') },
+    { value: 'bought' as const, label: t('gifts.statusBought') },
+    { value: 'given' as const, label: t('gifts.statusGiven') },
+    { value: 'archived' as const, label: t('gifts.statusArchived') },
+  ];
 
   return (
     <div className="space-y-7">
@@ -83,69 +82,66 @@ export const GiftView: React.FC<GiftViewProps> = ({
       />
 
       {/* Filter Controls Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        {/* Status filter pills */}
-        <div className="inline-flex items-center gap-1 bg-surface-soft border border-border p-1 rounded-full self-start flex-wrap max-w-full">
-          {(['all', 'idea', 'bought', 'given', 'archived'] as const).map((st) => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setSelectedStatusFilter(st)}
-              className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-[background-color,color] duration-[180ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40 ${
-                selectedStatusFilter === st
-                  ? 'bg-surface-green text-green-900 font-semibold shadow-soft'
-                  : 'text-secondary hover:text-primary'
-              }`}
-            >
-              {getStatusLabel(st)}
-            </button>
-          ))}
-        </div>
+      {gifts.length > 0 && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <SegmentedControl<GiftStatus | 'all'>
+            ariaLabel={t('gifts.statusGroupLabel')}
+            roleMode="radiogroup"
+            size="sm"
+            value={selectedStatusFilter}
+            onChange={setSelectedStatusFilter}
+            options={statusOptions}
+            className="self-start"
+          />
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Person filter */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter-person-select" className="text-[13px] text-secondary shrink-0">
-              {t('gifts.recipientFilter')}
-            </label>
-            <Select
-              compact
-              id="filter-person-select"
-              value={selectedPersonFilter}
-              onChange={(e) => setSelectedPersonFilter(e.target.value)}
-            >
-              <option value="all">{t('gifts.allPeople')}</option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Occasion filter */}
-          {distinctOccasions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Person filter */}
             <div className="flex items-center gap-2">
-              <label htmlFor="filter-occasion-select" className="text-[13px] text-secondary shrink-0">
-                {t('gifts.occasionFilter')}
+              <label htmlFor="filter-person-select" className="font-mono text-[12px] text-secondary shrink-0">
+                {t('gifts.recipientFilter')}
               </label>
               <Select
                 compact
-                id="filter-occasion-select"
-                value={selectedOccasionFilter}
-                onChange={(e) => setSelectedOccasionFilter(e.target.value)}
+                id="filter-person-select"
+                value={selectedPersonFilter}
+                onChange={(e) => setSelectedPersonFilter(e.target.value)}
               >
-                <option value="all">{t('gifts.allOccasions')}</option>
-                {distinctOccasions.map((occ) => (
-                  <option key={occ} value={occ}>
-                    {occ}
+                <option value="all">{t('gifts.allPeople')}</option>
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </Select>
             </div>
-          )}
+
+            {/* Occasion filter */}
+            {distinctOccasions.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="filter-occasion-select"
+                  className="font-mono text-[12px] text-secondary shrink-0"
+                >
+                  {t('gifts.occasionFilter')}
+                </label>
+                <Select
+                  compact
+                  id="filter-occasion-select"
+                  value={selectedOccasionFilter}
+                  onChange={(e) => setSelectedOccasionFilter(e.target.value)}
+                >
+                  <option value="all">{t('gifts.allOccasions')}</option>
+                  {distinctOccasions.map((occ) => (
+                    <option key={occ} value={occ}>
+                      {occ}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Gifts Visual Grid */}
       {filteredGifts.length > 0 ? (
@@ -156,7 +152,7 @@ export const GiftView: React.FC<GiftViewProps> = ({
               gift={gift}
               recipientName={gift.recipientName || t('common.unknown')}
               recipientRelationship={gift.recipientRelationship}
-              showImagePlaceholder={true}
+              showImagePlaceholder={false}
               onSelectPerson={onSelectPerson}
               onEdit={() => onEditGift(gift)}
               onDelete={() => setGiftToDelete(gift)}
@@ -164,6 +160,22 @@ export const GiftView: React.FC<GiftViewProps> = ({
             />
           ))}
         </div>
+      ) : gifts.length === 0 ? (
+        <EmptyState
+          icon={<Gift className="w-5 h-5 text-green-700" />}
+          title={t('gifts.emptyTitle')}
+          description={t('gifts.emptyDesc')}
+          action={
+            <Button
+              size="md"
+              variant="primary"
+              onClick={onAddGift}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              {t('gifts.addGiftIdea')}
+            </Button>
+          }
+        />
       ) : (
         <EmptyState
           icon={<Gift className="w-5 h-5 text-green-700" />}

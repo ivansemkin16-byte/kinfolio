@@ -52,8 +52,18 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
       title={initialNote ? t('notes.modalEditTitle') : t('notes.modalAddTitle')}
       subtitle={t('notes.modalSubtitle')}
       maxWidth="md"
+      footer={
+        <div className="flex items-center justify-end gap-2.5">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" form="note-editor-form" variant="primary">
+            {initialNote ? t('notes.updateNote') : t('notes.saveNote')}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="note-editor-form" onSubmit={handleSubmit} className="space-y-4">
         <Input
           label={t('notes.categoryLabel')}
           placeholder={t('notes.categoryPlaceholder')}
@@ -73,15 +83,6 @@ export const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
           error={error}
           autoFocus
         />
-
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button type="submit" variant="primary">
-            {initialNote ? t('notes.updateNote') : t('notes.saveNote')}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

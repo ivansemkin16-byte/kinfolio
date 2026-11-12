@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Gift, FileText, AlertTriangle, ArrowRight } from 'lucide-react';
 import { PersonProfileTab } from '../../types/navigation';
 import { searchAllRecords, SearchResultItem, SearchCategory } from '../../services/searchService';
+import { peopleRepository } from '../../db/repositories/peopleRepository';
 import { Badge } from '../common/Badge';
 import { SearchInput } from '../common/SearchInput';
 import { EmptyState } from '../common/EmptyState';
 import { PageHeader } from '../layout/PageHeader';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { selectPluralForm } from '../../i18n/helpers';
+import { triggerHaptic } from '../../motion/haptics';
 
 interface SearchViewProps {
   onSelectPerson: (personId: string, initialTab?: PersonProfileTab) => void;
@@ -18,6 +20,45 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    peopleRepository.getAll().then((people) => {
+      if (!mounted) return;
+      const picked: string[] = [];
+      const pushUnique = (val?: string) => {
+        const clean = val?.split('(')[0].trim();
+        if (!clean || clean.length < 2) return;
+        if (!picked.some((p) => p.toLowerCase() === clean.toLowerCase())) {
+          picked.push(clean);
+        }
+      };
+
+      for (const p of people) {
+        if (p.food.allergies[0]) pushUnique(p.food.allergies[0]);
+        if (p.preferences.brands[0]) pushUnique(p.preferences.brands[0]);
+        if (p.details.shoeSize) pushUnique(p.details.shoeSize);
+        if (p.preferences.hobbies[0]) pushUnique(p.preferences.hobbies[0]);
+        if (picked.length >= 6) break;
+      }
+
+      if (picked.length === 0) {
+        const fallback =
+          language === 'ru'
+            ? ['Peanuts', 'Aesop', 'EU 38', 'Кольцо', 'Coffee', 'Berlin']
+            : ['Peanuts', 'Aesop', 'EU 38', 'Ring', 'Coffee', 'Berlin'];
+        setSuggestions(fallback);
+      } else {
+        setSuggestions(picked.slice(0, 6));
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [language]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -27,11 +68,13 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
       searchAllRecords(query, language).then((items) => {
         if (!isCancelled) {
           setResults(items);
+          setActiveIndex(items.length > 0 ? 0 : -1);
           setIsSearching(false);
         }
       });
     } else {
       setResults([]);
+      setActiveIndex(-1);
       setIsSearching(false);
     }
 
@@ -39,6 +82,25 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
       isCancelled = true;
     };
   }, [query, language]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (results.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev <= 0 ? results.length - 1 : prev - 1));
+    } else if (e.key === 'Enter' && activeIndex >= 0 && results[activeIndex]) {
+      if (document.activeElement === inputRef.current) {
+        e.preventDefault();
+        triggerHaptic('selection');
+        const chosen = results[activeIndex];
+        onSelectPerson(chosen.personId, chosen.targetTab);
+      }
+    }
+  };
 
   const getCategoryIcon = (cat: SearchCategory) => {
     switch (cat) {
@@ -79,30 +141,35 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
   });
 
   return (
-    <div className="space-y-7 max-w-3xl">
+    <div className="space-y-7 max-w-3xl" onKeyDown={handleSearchKeyDown}>
       <PageHeader title={t('search.heading')} subtitle={t('search.subtitle')} />
 
-      {/* Large Search Input */}
+      {/* Search Pad */}
       <SearchInput
+        ref={inputRef}
         size="lg"
         value={query}
         onChange={setQuery}
         placeholder={t('search.placeholder')}
         clearLabel={t('common.clear')}
+        aria-label={t('search.heading')}
         autoFocus
       />
 
-      {/* Suggested Fast Queries */}
-      {!query && (
+      {/* Torn Paper Suggestion Scraps */}
+      {!query && suggestions.length > 0 && (
         <div className="space-y-2.5">
-          <p className="text-[13px] font-medium text-secondary">{t('search.quickSuggestions')}</p>
+          <p className="type-hand text-[19px] text-secondary">{t('search.quickSuggestions')}</p>
           <div className="flex flex-wrap gap-2">
-            {['Peanuts', 'Aesop', 'EU 38', 'Ring', 'Coffee', 'Photography'].map((term) => (
+            {suggestions.map((term) => (
               <button
                 key={term}
                 type="button"
-                onClick={() => setQuery(term)}
-                className="text-[13px] font-medium bg-surface border border-border px-3.5 py-1.5 rounded-full text-secondary hover:text-green-900 hover:bg-surface-green/60 hover:border-green-300 transition-[background-color,border-color,color] duration-[180ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40"
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setQuery(term);
+                }}
+                className="font-mono text-[12px] bg-surface-kraft/85 border border-border-strong/60 px-3 py-1.5 min-h-[36px] rounded-[3px] text-primary hover:bg-surface-green hover:border-green-300 active:scale-[0.95] transition-[background-color,border-color,transform] duration-[110ms] shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/45"
               >
                 {term}
               </button>
@@ -111,10 +178,10 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
         </div>
       )}
 
-      {/* Search results */}
+      {/* Search Results */}
       {query.trim().length >= 2 && (
         <div className="space-y-3.5">
-          <div className="flex items-center justify-between text-[13px] text-secondary font-medium">
+          <div className="flex items-center justify-between font-mono text-[12px] text-secondary tabular-nums">
             <span>
               {isSearching
                 ? t('search.searching')
@@ -124,55 +191,56 @@ export const SearchView: React.FC<SearchViewProps> = ({ onSelectPerson }) => {
 
           {results.length > 0 ? (
             <div className="space-y-2.5">
-              {results.map((match) => (
-                <div
-                  key={match.id}
-                  onClick={() => onSelectPerson(match.personId, match.targetTab)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
+              {results.map((match, idx) => {
+                const isSelected = idx === activeIndex;
+                return (
+                  <button
+                    key={match.id}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('selection');
                       onSelectPerson(match.personId, match.targetTab);
-                    }
-                  }}
-                  className={`bg-surface border rounded-lg p-4 transition-[border-color,box-shadow,background-color] duration-[180ms] cursor-pointer hover:shadow-soft flex items-center justify-between gap-4 group focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40 ${
-                    match.isAllergyAlert
-                      ? 'border-danger/35 hover:border-danger/60 bg-[#FAF0EF]/35'
-                      : 'border-border hover:border-green-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5 min-w-0">
-                    <div
-                      className={`w-9 h-9 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${
-                        match.isAllergyAlert
-                          ? 'bg-[#FAF0EF] border-danger/25'
-                          : 'bg-surface-soft border-border'
-                      }`}
-                    >
-                      {getCategoryIcon(match.category)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="text-[15.5px] font-semibold text-primary group-hover:text-green-900 transition-colors">
-                          {match.personName}
-                        </span>
-                        <Badge
-                          size="sm"
-                          variant={match.isAllergyAlert ? 'danger' : 'default'}
-                        >
-                          {getCategoryLabel(match.category)}
-                        </Badge>
+                    }}
+                    className={`w-full text-left bg-surface border rounded-[4px] p-4 transition-[border-color,box-shadow,background-color,transform] duration-[120ms] cursor-pointer hover:shadow-card active:scale-[0.99] flex items-center justify-between gap-4 group focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/45 ${
+                      match.isAllergyAlert
+                        ? 'border-danger-border hover:border-danger bg-danger-bg/65'
+                        : isSelected
+                        ? 'border-border-strong shadow-card'
+                        : 'border-border hover:border-border-strong'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div
+                        className={`w-9 h-9 rounded-[3px] border flex items-center justify-center shrink-0 mt-0.5 ${
+                          match.isAllergyAlert
+                            ? 'bg-danger-bg border-danger-border'
+                            : 'bg-surface-kraft/60 border-border'
+                        }`}
+                      >
+                        {getCategoryIcon(match.category)}
                       </div>
-                      <p className="text-[13.5px] text-secondary mt-1 truncate leading-[1.45]">
-                        {match.snippet}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="font-serif text-[16px] font-semibold text-primary group-hover:text-green-900 transition-colors">
+                            {match.personName}
+                          </span>
+                          <Badge
+                            size="sm"
+                            variant={match.isAllergyAlert ? 'danger' : 'default'}
+                          >
+                            {getCategoryLabel(match.category)}
+                          </Badge>
+                        </div>
+                        <p className="text-[13.5px] text-secondary mt-1 line-clamp-2 break-words leading-[1.45]">
+                          {match.snippet}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <ArrowRight className="w-4 h-4 text-muted group-hover:text-green-700 group-hover:translate-x-0.5 transition-all shrink-0" />
-                </div>
-              ))}
+                    <ArrowRight className="w-4 h-4 text-muted group-hover:text-primary group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </button>
+                );
+              })}
             </div>
           ) : (
             !isSearching && (

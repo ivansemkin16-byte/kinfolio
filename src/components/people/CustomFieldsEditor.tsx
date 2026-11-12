@@ -42,13 +42,13 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
   };
 
   return (
-    <section className="bg-surface border border-border rounded-lg p-5 sm:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+    <section className="receipt-slip border border-border-strong/65 rounded-[2px] p-4 sm:p-5 space-y-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-dashed border-border-strong/70">
         <div>
-          <h3 className="text-[12px] font-semibold text-secondary uppercase tracking-[0.06em]">
+          <h3 className="font-mono text-[11px] font-semibold text-secondary uppercase tracking-[0.08em]">
             {t('customFields.heading')}
           </h3>
-          <p className="text-[13px] text-secondary mt-1 leading-[1.45]">
+          <p className="type-hand text-[17px] text-secondary mt-0.5 leading-[1.2]">
             {t('customFields.subheading')}
           </p>
         </div>
@@ -67,12 +67,12 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
       </div>
 
       {/* Field List */}
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-dotted divide-border-strong/60">
         {fields.length > 0 ? (
           fields.map((field) => (
             <div
               key={field.id}
-              className="py-3 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center gap-2.5"
+              className="py-2.5 first:pt-0.5 last:pb-0.5 flex flex-col sm:flex-row sm:items-center gap-2"
             >
               <input
                 type="text"
@@ -80,7 +80,7 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
                 onChange={(e) => handleUpdateField(field.id, e.target.value, field.value)}
                 placeholder={t('customFields.labelPlaceholder')}
                 aria-label={t('customFields.labelPlaceholder')}
-                className="sm:w-1/3 h-10 bg-surface-soft/60 border border-border rounded-md px-3 text-primary font-medium text-[13.5px] focus:outline-none focus:border-green-700 focus:bg-surface"
+                className="sm:w-2/5 h-9 bg-surface/80 border border-border rounded-[3px] px-2.5 text-primary font-mono text-[12px] uppercase tracking-[0.03em] focus:outline-none focus:border-green-700 focus:bg-surface"
               />
               <input
                 type="text"
@@ -88,7 +88,7 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
                 onChange={(e) => handleUpdateField(field.id, field.label, e.target.value)}
                 placeholder={t('customFields.valuePlaceholder')}
                 aria-label={t('customFields.valuePlaceholder')}
-                className="flex-1 h-10 bg-surface-soft/60 border border-border rounded-md px-3 text-primary text-[14px] focus:outline-none focus:border-green-700 focus:bg-surface"
+                className="flex-1 h-9 bg-surface/80 border border-border rounded-[3px] px-2.5 text-primary font-mono text-[13px] font-medium focus:outline-none focus:border-green-700 focus:bg-surface"
               />
               <div className="self-end sm:self-auto">
                 <IconButton
@@ -97,14 +97,14 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
                   size="sm"
                   onClick={() => handleRemoveField(field.id)}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </IconButton>
               </div>
             </div>
           ))
         ) : (
           !isAdding && (
-            <p className="text-[14px] text-muted py-2">
+            <p className="type-hand text-[17px] text-muted py-1.5">
               {t('customFields.empty')}
             </p>
           )
@@ -113,28 +113,30 @@ export const CustomFieldsEditor: React.FC<CustomFieldsEditorProps> = ({ fields, 
 
       {/* New field row */}
       {isAdding && (
-        <div className="bg-surface-soft border border-border rounded-md p-4 space-y-3">
-          <span className="text-[13px] font-semibold text-primary block">
+        <div className="bg-surface-soft/85 border border-dashed border-border-strong rounded-[3px] p-3.5 space-y-2.5">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-primary block">
             {t('customFields.newMeasurement')}
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               type="text"
               placeholder={t('customFields.newLabelPlaceholder')}
+              aria-label={t('customFields.newLabelPlaceholder')}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
-              className="h-10 bg-surface border border-border rounded-md px-3 text-[14px] text-primary placeholder:text-muted focus:outline-none focus:border-green-700"
+              className="h-9 bg-surface border border-border-strong rounded-[3px] px-2.5 text-[13px] text-primary placeholder:text-muted focus:outline-none focus:border-green-700"
               autoFocus
             />
             <input
               type="text"
               placeholder={t('customFields.newValuePlaceholder')}
+              aria-label={t('customFields.newValuePlaceholder')}
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddField();
               }}
-              className="h-10 bg-surface border border-border rounded-md px-3 text-[14px] text-primary placeholder:text-muted focus:outline-none focus:border-green-700"
+              className="h-9 bg-surface border border-border-strong rounded-[3px] px-2.5 text-[13px] font-mono text-primary placeholder:text-muted focus:outline-none focus:border-green-700"
             />
           </div>
           <div className="flex items-center justify-end gap-2 pt-1">

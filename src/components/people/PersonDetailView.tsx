@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Edit3,
   Trash2,
+  Star,
 } from 'lucide-react';
 import { Person, UpdatePersonInput } from '../../types/person';
 import { PersonProfileTab } from '../../types/navigation';
@@ -14,8 +15,8 @@ import { GiftIdea, GiftStatus } from '../../types/gift';
 import { Note } from '../../types/note';
 import { Button } from '../common/Button';
 import { IconButton } from '../common/IconButton';
-import { Badge } from '../common/Badge';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { SegmentedControl } from '../common/SegmentedControl';
 import { TagManager } from '../common/TagManager';
 import { PersonAvatar } from './PersonAvatar';
 import { DetailGroup, DetailItem } from './DetailGroup';
@@ -25,6 +26,8 @@ import { NoteEditorModal } from './NoteEditorModal';
 import { GiftCard } from '../gifts/GiftCard';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { formatShortDate, selectPluralForm } from '../../i18n/helpers';
+import { triggerHaptic } from '../../motion/haptics';
+import { useMediaPreference } from '../../motion/useReducedMotion';
 
 interface PersonDetailViewProps {
   person: Person;
@@ -44,6 +47,9 @@ interface PersonDetailViewProps {
   onDeleteNote: (noteId: string) => Promise<void> | void;
 }
 
+const STICKY_VARIANTS = ['sticky-yellow', 'sticky-pink', 'sticky-sage', 'sticky-blue'];
+const NOTE_TILTS = ['md:rotate-[-0.5deg]', 'md:rotate-[0.4deg]', 'md:rotate-[-0.3deg]', 'md:rotate-[0.5deg]'];
+
 export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   person,
   gifts,
@@ -62,6 +68,7 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   onDeleteNote,
 }) => {
   const { t, language } = useTranslation();
+  const isDesktopSpread = useMediaPreference('(min-width: 1024px)');
   const [activeTab, setActiveTab] = useState<PersonProfileTab>(initialTab);
 
   useEffect(() => {
@@ -90,20 +97,45 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   const [foodNote, setFoodNote] = useState(person.food.notes || '');
   const [isEditingFoodNote, setIsEditingFoodNote] = useState(false);
 
+  useEffect(() => {
+    if (!isEditingSizes) {
+      setClothingSize(person.details.clothingSize || '');
+      setShoeSize(person.details.shoeSize || '');
+      setRingSize(person.details.ringSize || '');
+      setHeight(person.details.height || '');
+    }
+    if (!isEditingFoodNote) {
+      setFoodNote(person.food.notes || '');
+    }
+  }, [
+    person.id,
+    person.updatedAt,
+    person.details.clothingSize,
+    person.details.shoeSize,
+    person.details.ringSize,
+    person.details.height,
+    person.food.notes,
+    isEditingSizes,
+    isEditingFoodNote,
+  ]);
+
   const formattedUpdated = formatShortDate(person.updatedAt, language, true);
   const hasAllergies = person.food.allergies && person.food.allergies.length > 0;
 
-  const tabs: { id: PersonProfileTab; label: string; count?: number; isAlert?: boolean }[] = [
-    { id: 'details', label: t('personDetail.tabDetails') },
-    { id: 'preferences', label: t('personDetail.tabPreferences') },
+  const effectiveTab: PersonProfileTab =
+    isDesktopSpread && activeTab === 'details' ? 'notes' : activeTab;
+
+  const rightPageTabs: { value: PersonProfileTab; label: string; badge?: number; isAlert?: boolean }[] = [
+    ...(isDesktopSpread ? [] : [{ value: 'details' as const, label: t('personDetail.tabDetails') }]),
+    { value: 'notes', label: t('personDetail.tabNotes'), badge: notes.length },
+    { value: 'preferences', label: t('personDetail.tabPreferences') },
     {
-      id: 'food',
+      value: 'food',
       label: t('personDetail.tabFood'),
-      count: hasAllergies ? person.food.allergies.length : undefined,
+      badge: hasAllergies ? person.food.allergies.length : undefined,
       isAlert: hasAllergies,
     },
-    { id: 'gifts', label: t('personDetail.tabGifts'), count: gifts.length },
-    { id: 'notes', label: t('personDetail.tabNotes'), count: notes.length },
+    { value: 'gifts', label: t('personDetail.tabGifts'), badge: gifts.length },
   ];
 
   const handleSaveSizes = async () => {
@@ -143,619 +175,734 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
     many: t('gifts.personGiftsMany', { count: gifts.length }),
   });
 
+  const renderSizesReceipt = () => (
+    <div className="space-y-5 pt-1">
+      {isEditingSizes ? (
+        <section className="receipt-slip border border-border-strong/75 rounded-[2px] p-4 sm:p-5 space-y-4">
+          <div className="flex items-center justify-between pb-2.5 border-b border-dashed border-border-strong">
+            <h3 className="font-mono text-[11px] font-semibold text-secondary uppercase tracking-[0.07em]">
+              {t('personDetail.sizesHeading')}
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setIsEditingSizes(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button size="sm" variant="primary" onClick={handleSaveSizes}>
+                {t('personDetail.saveSizes')}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label
+                htmlFor="detail-clothing-size"
+                className="font-mono text-[11.5px] uppercase tracking-[0.04em] text-secondary block mb-1"
+              >
+                {t('personDetail.clothingSizeLabel')}
+              </label>
+              <input
+                id="detail-clothing-size"
+                type="text"
+                value={clothingSize}
+                onChange={(e) => setClothingSize(e.target.value)}
+                placeholder={t('personDetail.clothingPlaceholder')}
+                className="w-full h-10 bg-surface border border-border-strong rounded-[3px] px-3 font-mono text-[13px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="detail-shoe-size"
+                className="font-mono text-[11.5px] uppercase tracking-[0.04em] text-secondary block mb-1"
+              >
+                {t('personDetail.shoeSizeLabel')}
+              </label>
+              <input
+                id="detail-shoe-size"
+                type="text"
+                value={shoeSize}
+                onChange={(e) => setShoeSize(e.target.value)}
+                placeholder={t('personDetail.shoePlaceholder')}
+                className="w-full h-10 bg-surface border border-border-strong rounded-[3px] px-3 font-mono text-[13px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="detail-ring-size"
+                className="font-mono text-[11.5px] uppercase tracking-[0.04em] text-secondary block mb-1"
+              >
+                {t('personDetail.ringSizeLabel')}
+              </label>
+              <input
+                id="detail-ring-size"
+                type="text"
+                value={ringSize}
+                onChange={(e) => setRingSize(e.target.value)}
+                placeholder={t('personDetail.ringPlaceholder')}
+                className="w-full h-10 bg-surface border border-border-strong rounded-[3px] px-3 font-mono text-[13px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="detail-height"
+                className="font-mono text-[11.5px] uppercase tracking-[0.04em] text-secondary block mb-1"
+              >
+                {t('personDetail.heightLabel')}
+              </label>
+              <input
+                id="detail-height"
+                type="text"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder={t('personDetail.heightPlaceholder')}
+                className="w-full h-10 bg-surface border border-border-strong rounded-[3px] px-3 font-mono text-[13px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
+              />
+            </div>
+          </div>
+        </section>
+      ) : (
+        <DetailGroup
+          title={t('personDetail.sizesHeading')}
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setClothingSize(person.details.clothingSize || '');
+                setShoeSize(person.details.shoeSize || '');
+                setRingSize(person.details.ringSize || '');
+                setHeight(person.details.height || '');
+                setIsEditingSizes(true);
+              }}
+              icon={<Edit3 className="w-3.5 h-3.5" />}
+            >
+              {t('personDetail.editSizes')}
+            </Button>
+          }
+        >
+          <DetailItem
+            label={t('personDetail.clothingLabel')}
+            value={person.details.clothingSize}
+            emptyText={t('personDetail.notSpecified')}
+          />
+          <DetailItem
+            label={t('personDetail.shoeLabel')}
+            value={person.details.shoeSize}
+            emptyText={t('personDetail.notSpecified')}
+          />
+          <DetailItem
+            label={t('personDetail.ringLabel')}
+            value={person.details.ringSize}
+            emptyText={t('personDetail.notSpecified')}
+          />
+          <DetailItem
+            label={t('personDetail.heightLabel')}
+            value={person.details.height}
+            emptyText={t('personDetail.notSpecified')}
+          />
+        </DetailGroup>
+      )}
+
+      <CustomFieldsEditor
+        fields={person.details.customFields || []}
+        onChange={(updatedCustomFields) => {
+          onUpdatePerson({
+            details: {
+              ...person.details,
+              customFields: updatedCustomFields,
+            },
+          });
+        }}
+      />
+    </div>
+  );
+
   return (
-    <div className="space-y-7 pb-10">
-      {/* Top Breadcrumb Bar */}
+    <div className="space-y-6 pb-8">
+      {/* Top Return Chapter Link */}
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-[14px] font-medium text-secondary hover:text-primary transition-colors py-1.5 px-2.5 -ml-2.5 rounded-md hover:bg-surface-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40"
+          onClick={() => {
+            triggerHaptic('selection');
+            onBack();
+          }}
+          className="inline-flex items-center gap-2 min-h-[40px] font-mono text-[12.5px] uppercase tracking-[0.04em] text-secondary hover:text-primary transition-[color,background-color,transform] duration-[110ms] active:scale-[0.96] py-1.5 px-2.5 -ml-2.5 rounded-sm hover:bg-surface-soft/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/45"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>{t('personDetail.backToPeople')}</span>
         </button>
       </div>
 
-      {/* Person Profile Header */}
-      <header className="bg-surface border border-border rounded-xl p-6 sm:p-7 shadow-soft">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
-          <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-            <PersonAvatar name={person.name} photoUrl={person.photoUrl} size="xl" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-[26px] sm:text-[32px] font-semibold tracking-[-0.02em] leading-[1.2] text-primary">
-                  {person.name}
-                </h1>
+      {/* Open Two-Page Journal Spread (Left Page = Portrait & Size Receipt, Right Page = Living Memory) */}
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(320px,0.92fr)_1.25fr] gap-8 lg:gap-12 items-start">
+        {/* Subtle Center Book Spine Crease on Desktop Spread */}
+        <div
+          aria-hidden="true"
+          className="hidden lg:block pointer-events-none absolute top-0 bottom-0 left-[42.4%] w-10 -translate-x-1/2 book-spine-gutter"
+        />
+
+        {/* LEFT PAGE: Pinned Portrait, Allergy Stamp, Sizes Receipt & Delete */}
+        <div className="space-y-6 min-w-0">
+          {/* Pinned Chapter Card */}
+          <header className="relative bg-surface border border-border-strong/75 rounded-[4px] p-5 sm:p-6 pt-7 shadow-card">
+            <div
+              aria-hidden="true"
+              className="washi-tape absolute -top-2.5 left-1/2 -translate-x-1/2 w-20 h-4 rounded-[1px] pointer-events-none"
+            />
+
+            <div className="flex items-start gap-4 min-w-0">
+              <PersonAvatar name={person.name} photoUrl={person.photoUrl} size="xl" />
+              <div className="min-w-0 flex-1">
+                <h1 className="type-display text-primary break-words">{person.name}</h1>
                 {person.relationship && (
-                  <Badge size="md" variant="accent">
+                  <p className="type-hand text-[22px] text-green-700 leading-[1.15] mt-0.5">
                     {person.relationship}
-                  </Badge>
+                  </p>
                 )}
-              </div>
-
-              {person.bio && (
-                <p className="text-[14.5px] text-secondary mt-2 leading-[1.55] max-w-2xl">
-                  {person.bio}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[13px] text-secondary">
-                {person.birthday && (
-                  <div className="inline-flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-green-700" />
-                    <span>{person.birthday}</span>
-                  </div>
-                )}
-                <span className="text-muted">
-                  {t('personDetail.updatedOn', { date: formattedUpdated })}
-                </span>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 self-start">
-            <Button
-              size="md"
-              variant="secondary"
-              onClick={() => onEditPerson(person)}
-              icon={<Edit3 className="w-4 h-4" />}
-            >
-              {t('personDetail.editProfile')}
-            </Button>
-            <Button
-              size="md"
-              variant="soft"
-              onClick={() => onAddGift(person.id)}
-              icon={<GiftIcon className="w-4 h-4" />}
-            >
-              {t('personDetail.addGiftIdea')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Profile Tabs */}
-        <nav
-          aria-label="Profile sections"
-          className="flex items-center gap-1.5 mt-7 pt-4 border-t border-border overflow-x-auto no-scrollbar"
-        >
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13.5px] transition-[background-color,color] duration-[180ms] whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40 ${
-                  isActive
-                    ? 'bg-surface-green text-green-900 font-semibold'
-                    : 'text-secondary font-medium hover:text-primary hover:bg-surface-soft'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span
-                    className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-full ${
-                      tab.isAlert
-                        ? 'bg-[#FAF0EF] text-danger'
-                        : isActive
-                        ? 'bg-surface text-green-900'
-                        : 'bg-surface-soft text-secondary'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </header>
-
-      {/* Tab Contents */}
-      <div className="min-h-[360px]">
-        {/* DETAILS TAB — Compact hairline-divided groups */}
-        {activeTab === 'details' && (
-          <div className="space-y-6">
-            {isEditingSizes ? (
-              <section className="bg-surface border border-border rounded-lg p-5 sm:p-6 space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-border">
-                  <h3 className="text-[12px] font-semibold text-secondary uppercase tracking-[0.06em]">
-                    {t('personDetail.sizesHeading')}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setIsEditingSizes(false)}>
-                      {t('common.cancel')}
-                    </Button>
-                    <Button size="sm" variant="primary" onClick={handleSaveSizes}>
-                      {t('personDetail.saveSizes')}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-[13px] font-medium text-primary block mb-1.5">
-                      {t('personDetail.clothingSizeLabel')}
-                    </label>
-                    <input
-                      type="text"
-                      value={clothingSize}
-                      onChange={(e) => setClothingSize(e.target.value)}
-                      placeholder={t('personDetail.clothingPlaceholder')}
-                      className="w-full h-[42px] bg-surface border border-border rounded-md px-3 text-[14px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[13px] font-medium text-primary block mb-1.5">
-                      {t('personDetail.shoeSizeLabel')}
-                    </label>
-                    <input
-                      type="text"
-                      value={shoeSize}
-                      onChange={(e) => setShoeSize(e.target.value)}
-                      placeholder={t('personDetail.shoePlaceholder')}
-                      className="w-full h-[42px] bg-surface border border-border rounded-md px-3 text-[14px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[13px] font-medium text-primary block mb-1.5">
-                      {t('personDetail.ringSizeLabel')}
-                    </label>
-                    <input
-                      type="text"
-                      value={ringSize}
-                      onChange={(e) => setRingSize(e.target.value)}
-                      placeholder={t('personDetail.ringPlaceholder')}
-                      className="w-full h-[42px] bg-surface border border-border rounded-md px-3 text-[14px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[13px] font-medium text-primary block mb-1.5">
-                      {t('personDetail.heightLabel')}
-                    </label>
-                    <input
-                      type="text"
-                      value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      placeholder={t('personDetail.heightPlaceholder')}
-                      className="w-full h-[42px] bg-surface border border-border rounded-md px-3 text-[14px] text-primary focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
-                    />
-                  </div>
-                </div>
-              </section>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <DetailGroup
-                  title={t('personDetail.clothingShoesGroup')}
-                  action={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setClothingSize(person.details.clothingSize || '');
-                        setShoeSize(person.details.shoeSize || '');
-                        setRingSize(person.details.ringSize || '');
-                        setHeight(person.details.height || '');
-                        setIsEditingSizes(true);
-                      }}
-                      icon={<Edit3 className="w-3.5 h-3.5" />}
-                    >
-                      {t('personDetail.editSizes')}
-                    </Button>
-                  }
-                >
-                  <DetailItem
-                    label={t('personDetail.clothingLabel')}
-                    value={person.details.clothingSize}
-                    emptyText={t('personDetail.notSpecified')}
-                  />
-                  <DetailItem
-                    label={t('personDetail.shoeLabel')}
-                    value={person.details.shoeSize}
-                    emptyText={t('personDetail.notSpecified')}
-                  />
-                </DetailGroup>
-
-                <DetailGroup title={t('personDetail.accessoriesMeasureGroup')}>
-                  <DetailItem
-                    label={t('personDetail.ringLabel')}
-                    value={person.details.ringSize}
-                    emptyText={t('personDetail.notSpecified')}
-                  />
-                  <DetailItem
-                    label={t('personDetail.heightLabel')}
-                    value={person.details.height}
-                    emptyText={t('personDetail.notSpecified')}
-                  />
-                </DetailGroup>
-              </div>
+            {person.bio && (
+              <p className="mt-4 pt-3.5 border-t border-dashed border-border font-serif italic text-[14.5px] text-secondary leading-[1.55] break-words">
+                “{person.bio}”
+              </p>
             )}
 
-            {/* Custom Measurements & Fields */}
-            <CustomFieldsEditor
-              fields={person.details.customFields || []}
-              onChange={(updatedCustomFields) => {
-                onUpdatePerson({
-                  details: {
-                    ...person.details,
-                    customFields: updatedCustomFields,
-                  },
-                });
-              }}
-            />
-          </div>
-        )}
-
-        {/* PREFERENCES TAB */}
-        {activeTab === 'preferences' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <TagManager
-              title={t('preferences.scentsTitle')}
-              hint={t('preferences.scentsHint')}
-              tags={person.preferences.scents || []}
-              placeholder={t('preferences.scentsPlaceholder')}
-              onChange={(scents) => onUpdatePerson({ preferences: { ...person.preferences, scents } })}
-            />
-
-            <TagManager
-              title={t('preferences.brandsTitle')}
-              hint={t('preferences.brandsHint')}
-              tags={person.preferences.brands || []}
-              placeholder={t('preferences.brandsPlaceholder')}
-              onChange={(brands) => onUpdatePerson({ preferences: { ...person.preferences, brands } })}
-            />
-
-            <TagManager
-              title={t('preferences.colorsTitle')}
-              hint={t('preferences.colorsHint')}
-              tags={person.preferences.colors || []}
-              placeholder={t('preferences.colorsPlaceholder')}
-              onChange={(colors) => onUpdatePerson({ preferences: { ...person.preferences, colors } })}
-            />
-
-            <TagManager
-              title={t('preferences.hobbiesTitle')}
-              hint={t('preferences.hobbiesHint')}
-              tags={person.preferences.hobbies || []}
-              placeholder={t('preferences.hobbiesPlaceholder')}
-              onChange={(hobbies) => onUpdatePerson({ preferences: { ...person.preferences, hobbies } })}
-            />
-
-            <TagManager
-              title={t('preferences.likesTitle')}
-              hint={t('preferences.likesHint')}
-              badgeVariant="success"
-              tags={person.preferences.likes || []}
-              placeholder={t('preferences.likesPlaceholder')}
-              onChange={(likes) => onUpdatePerson({ preferences: { ...person.preferences, likes } })}
-            />
-
-            <TagManager
-              title={t('preferences.dislikesTitle')}
-              hint={t('preferences.dislikesHint')}
-              tags={person.preferences.dislikes || []}
-              placeholder={t('preferences.dislikesPlaceholder')}
-              onChange={(dislikes) => onUpdatePerson({ preferences: { ...person.preferences, dislikes } })}
-            />
-          </div>
-        )}
-
-        {/* FOOD TAB — 4 Strict Categories */}
-        {activeTab === 'food' && (
-          <div className="space-y-6">
-            {/* 1. Medical Allergies (Quiet yet unmistakable) */}
-            <div className="bg-[#FAF0EF]/60 border border-danger/35 rounded-lg p-5 space-y-3.5">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-danger shrink-0" />
-                <h3 className="text-[13px] font-semibold text-[#8E4740] uppercase tracking-[0.04em]">
-                  {t('food.allergiesBannerTitle')}
-                </h3>
-              </div>
-              <p className="text-[13.5px] text-[#7D4A45] leading-[1.5]">
-                {t('food.allergiesBannerDesc')}
-              </p>
-
-              <FoodCategory
-                title={t('food.allergiesTitle')}
-                variant="allergy"
-                seamless
-                items={person.food.allergies || []}
-                placeholder={t('food.allergiesPlaceholder')}
-                onChange={(allergies) => onUpdatePerson({ food: { ...person.food, allergies } })}
-              />
-            </div>
-
-            {/* 2. Intolerances & 3. Dietary Restrictions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FoodCategory
-                title={t('food.intolerancesTitle')}
-                hint={t('food.intolerancesHint')}
-                variant="intolerance"
-                items={person.food.intolerances || []}
-                placeholder={t('food.intolerancesPlaceholder')}
-                onChange={(intolerances) => onUpdatePerson({ food: { ...person.food, intolerances } })}
-              />
-
-              <FoodCategory
-                title={t('food.dietaryTitle')}
-                hint={t('food.dietaryHint')}
-                variant="diet"
-                items={person.food.dietaryRestrictions || []}
-                placeholder={t('food.dietaryPlaceholder')}
-                onChange={(dietaryRestrictions) =>
-                  onUpdatePerson({ food: { ...person.food, dietaryRestrictions } })
-                }
-              />
-
-              {/* 4. Likes & Dislikes */}
-              <FoodCategory
-                title={t('food.favoriteFoodsTitle')}
-                variant="favorite"
-                items={person.food.favoriteFoods || []}
-                placeholder={t('food.favoriteFoodsPlaceholder')}
-                onChange={(favoriteFoods) => onUpdatePerson({ food: { ...person.food, favoriteFoods } })}
-              />
-
-              <FoodCategory
-                title={t('food.dislikedFoodsTitle')}
-                hint={t('food.dislikedFoodsHint')}
-                variant="disliked"
-                items={person.food.dislikedFoods || []}
-                placeholder={t('food.dislikedFoodsPlaceholder')}
-                onChange={(dislikedFoods) => onUpdatePerson({ food: { ...person.food, dislikedFoods } })}
-              />
-            </div>
-
-            {/* Dining / Kitchen Advice Note */}
-            <div className="bg-surface border border-border rounded-lg p-5 sm:p-6 space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-border">
-                <div>
-                  <h3 className="text-[12px] font-semibold text-secondary uppercase tracking-[0.06em]">
-                    {t('food.kitchenNoteHeading')}
-                  </h3>
-                  <p className="text-[13px] text-secondary mt-0.5">
-                    {t('food.kitchenNoteSubheading')}
-                  </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 font-mono text-[11.5px] text-secondary tabular-nums">
+              {person.birthday && (
+                <div className="inline-flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-green-700" />
+                  <span>{person.birthday}</span>
                 </div>
-
-                {!isEditingFoodNote ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setFoodNote(person.food.notes || '');
-                      setIsEditingFoodNote(true);
-                    }}
-                    icon={<Edit3 className="w-3.5 h-3.5" />}
-                  >
-                    {t('food.editNote')}
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setIsEditingFoodNote(false)}>
-                      {t('common.cancel')}
-                    </Button>
-                    <Button size="sm" variant="primary" onClick={handleSaveFoodNote}>
-                      {t('food.saveNote')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {!isEditingFoodNote ? (
-                <p className="text-[14.5px] text-primary leading-[1.55] whitespace-pre-wrap pt-1">
-                  {person.food.notes || (
-                    <span className="text-muted">{t('food.emptyKitchenNote')}</span>
-                  )}
-                </p>
-              ) : (
-                <textarea
-                  value={foodNote}
-                  onChange={(e) => setFoodNote(e.target.value)}
-                  placeholder={t('food.kitchenNotePlaceholder')}
-                  rows={3}
-                  className="w-full bg-surface border border-border rounded-md p-3.5 text-[14px] text-primary leading-[1.55] placeholder:text-muted focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
-                />
               )}
-            </div>
-          </div>
-        )}
-
-        {/* GIFTS TAB */}
-        {activeTab === 'gifts' && (
-          <div className="space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[14px] text-secondary font-medium">
-                {personGiftsCountText}
+              <span className="text-muted">
+                {t('personDetail.updatedOn', { date: formattedUpdated })}
               </span>
+            </div>
+
+            {/* Chapter Actions */}
+            <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center gap-2">
               <Button
-                size="md"
-                variant="primary"
-                onClick={() => onAddGift(person.id)}
-                icon={<Plus className="w-4 h-4" />}
+                size="sm"
+                variant={person.starred ? 'accent' : 'secondary'}
+                aria-pressed={!!person.starred}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  onUpdatePerson({ starred: !person.starred });
+                }}
+                icon={
+                  <Star
+                    className={`w-3.5 h-3.5 ${person.starred ? 'fill-current text-warning' : ''}`}
+                  />
+                }
               >
-                {t('gifts.addGiftIdea')}
+                {person.starred ? t('personDetail.unstarProfile') : t('personDetail.starProfile')}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onEditPerson(person)}
+                icon={<Edit3 className="w-3.5 h-3.5" />}
+              >
+                {t('personDetail.editProfile')}
+              </Button>
+              <Button
+                size="sm"
+                variant="soft"
+                onClick={() => onAddGift(person.id)}
+                icon={<GiftIcon className="w-3.5 h-3.5" />}
+              >
+                {t('personDetail.addGiftIdea')}
               </Button>
             </div>
+          </header>
 
-            {gifts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {gifts.map((gift) => (
-                  <GiftCard
-                    key={gift.id}
-                    gift={gift}
-                    showImagePlaceholder={false}
-                    onEdit={() => onEditGift(gift)}
-                    onDelete={() => setGiftToDelete(gift)}
-                    onUpdateStatus={(st) => onUpdateGiftStatus(gift.id, st)}
-                  />
+          {/* Always-visible Medical Allergy Stamp on Left Page */}
+          {hasAllergies && (
+            <div className="bg-danger-bg border-2 border-danger-border rounded-[3px] p-4 space-y-2 shadow-soft">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-danger shrink-0" />
+                <span className="font-mono text-[11px] font-bold uppercase tracking-[0.07em] text-danger-text">
+                  {t('food.allergiesBannerTitle')}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {person.food.allergies.map((allergy, idx) => (
+                  <span
+                    key={`${allergy}-${idx}`}
+                    className="ink-stamp inline-block text-[11.5px] font-semibold px-2 py-0.5 rounded-[2px] bg-surface text-danger-text border-danger-border"
+                  >
+                    {allergy}
+                  </span>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12 bg-surface-soft/60 rounded-lg border border-border p-6">
-                <div className="w-11 h-11 rounded-full bg-surface-green text-green-700 flex items-center justify-center mx-auto mb-3">
-                  <GiftIcon className="w-5 h-5" />
+            </div>
+          )}
+
+          {/* Desktop Left Page: Sizes & Measurements Receipt */}
+          {isDesktopSpread && renderSizesReceipt()}
+
+          {/* Desktop Left Page Delete Card Section */}
+          {isDesktopSpread && (
+            <div className="pt-4 border-t border-dashed border-border">
+              <div className="bg-surface/75 border border-danger-border rounded-[4px] p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.05em] text-danger-text">
+                    {t('personDetail.deleteCardSectionTitle')}
+                  </h3>
+                  <p className="text-[12.5px] text-secondary mt-0.5 leading-[1.4]">
+                    {t('personDetail.deleteCardSectionDesc')}
+                  </p>
                 </div>
-                <p className="text-[16px] font-semibold text-primary">
-                  {t('gifts.noPersonGiftsTitle', { name: person.name })}
-                </p>
-                <p className="text-[14px] text-secondary mt-1.5 mb-5 max-w-md mx-auto">
-                  {t('gifts.noPersonGiftsDesc')}
-                </p>
-                <Button size="md" variant="secondary" onClick={() => onAddGift(person.id)}>
-                  {t('gifts.addFirstGift')}
+                <Button
+                  size="sm"
+                  variant="danger"
+                  className="shrink-0"
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                  icon={<Trash2 className="w-3.5 h-3.5" />}
+                >
+                  {t('personDetail.deleteCardBtn')}
                 </Button>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* NOTES TAB */}
-        {activeTab === 'notes' && (
-          <div className="space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[14px] text-secondary font-medium">
-                {t('notes.sectionInfo', { count: notes.length })}
-              </span>
-              {!isAddingQuickNote && (
-                <Button
-                  size="md"
-                  variant="primary"
-                  onClick={() => setIsAddingQuickNote(true)}
-                  icon={<Plus className="w-4 h-4" />}
-                >
-                  {t('notes.addNote')}
-                </Button>
-              )}
             </div>
+          )}
+        </div>
 
-            {isAddingQuickNote && (
-              <form
-                onSubmit={handleCreateQuickNote}
-                className="bg-surface border border-green-300 rounded-lg p-5 shadow-soft space-y-3"
-              >
-                <label className="text-[13px] font-semibold text-primary block">
-                  {t('notes.newNoteLabel')}
-                </label>
-                <textarea
-                  value={newNoteText}
-                  onChange={(e) => setNewNoteText(e.target.value)}
-                  placeholder={t('notes.newNotePlaceholder')}
-                  rows={3}
-                  autoFocus
-                  className="w-full bg-surface border border-border text-[14.5px] leading-[1.55] rounded-md p-3.5 text-primary placeholder:text-muted focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/15"
+        {/* RIGHT PAGE: Living Memory Tabs (Notes, Preferences, Food, Gifts, + Sizes on mobile) */}
+        <div className="space-y-5 min-w-0">
+          <SegmentedControl<PersonProfileTab>
+            ariaLabel="Profile sections"
+            roleMode="tablist"
+            idPrefix="profile"
+            size="sm"
+            value={effectiveTab}
+            onChange={setActiveTab}
+            options={rightPageTabs}
+          />
+
+          <div
+            role="tabpanel"
+            id={`profile-panel-${effectiveTab}`}
+            aria-labelledby={`profile-tab-${effectiveTab}`}
+            className="min-h-[320px]"
+          >
+            {/* MOBILE DETAILS TAB */}
+            {!isDesktopSpread && effectiveTab === 'details' && renderSizesReceipt()}
+
+            {/* NOTES TAB — Colored Sticky-Note Slips */}
+            {effectiveTab === 'notes' && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="type-hand text-[19px] text-secondary">
+                    {t('notes.sectionInfo', { count: notes.length })}
+                  </span>
+                  {!isAddingQuickNote && (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => setIsAddingQuickNote(true)}
+                      icon={<Plus className="w-3.5 h-3.5" />}
+                    >
+                      {t('notes.addNote')}
+                    </Button>
+                  )}
+                </div>
+
+                {isAddingQuickNote && (
+                  <form
+                    onSubmit={handleCreateQuickNote}
+                    className="sticky-yellow border rounded-[4px] p-4 sm:p-5 shadow-card space-y-3"
+                  >
+                    <label
+                      htmlFor="quick-note-textarea"
+                      className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary block"
+                    >
+                      {t('notes.newNoteLabel')}
+                    </label>
+                    <textarea
+                      id="quick-note-textarea"
+                      value={newNoteText}
+                      onChange={(e) => setNewNoteText(e.target.value)}
+                      placeholder={t('notes.newNotePlaceholder')}
+                      rows={3}
+                      autoFocus
+                      className="w-full paper-ruled border border-border-strong/70 text-[14.5px] leading-[1.6] rounded-[3px] p-3 text-primary placeholder:text-muted focus:outline-none focus:border-green-700"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        type="button"
+                        onClick={() => {
+                          setIsAddingQuickNote(false);
+                          setNewNoteText('');
+                        }}
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                      <Button size="sm" variant="primary" type="submit" disabled={!newNoteText.trim()}>
+                        {t('notes.saveNote')}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+
+                {notes.length > 0 ? (
+                  <div className="space-y-5 pt-1">
+                    {notes.map((note, idx) => {
+                      const noteDate = formatShortDate(note.createdAt, language, true);
+                      const editedDate =
+                        note.updatedAt && note.updatedAt !== note.createdAt
+                          ? formatShortDate(note.updatedAt, language, true)
+                          : null;
+                      const stickyClass = STICKY_VARIANTS[idx % STICKY_VARIANTS.length];
+                      const tiltClass = NOTE_TILTS[idx % NOTE_TILTS.length];
+
+                      return (
+                        <article
+                          key={note.id}
+                          className={`relative border rounded-[3px] p-5 pt-6 shadow-card transition-transform duration-[160ms] motion-safe:${tiltClass} hover:rotate-0 ${stickyClass}`}
+                        >
+                          <div
+                            aria-hidden="true"
+                            className="washi-tape absolute -top-2 left-6 w-14 h-3.5 rounded-[1px] pointer-events-none"
+                          />
+
+                          <div>
+                            {note.category && (
+                              <span className="ink-stamp inline-block text-[10.5px] font-semibold text-primary border-border-strong/80 bg-surface/65 px-2 py-0.5 rounded-[2px] mb-2.5">
+                                {note.category}
+                              </span>
+                            )}
+                            <p className="font-serif text-[15px] text-primary leading-[1.65] whitespace-pre-wrap break-words">
+                              {note.content}
+                            </p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-border-strong/35 flex items-center justify-between gap-2 font-mono text-[11px] text-secondary tabular-nums">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{t('notes.recordedOn', { date: noteDate })}</span>
+                              {editedDate && (
+                                <span>· {t('notes.updatedOn', { date: editedDate })}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <IconButton
+                                label={t('notes.editNoteTitle')}
+                                size="sm"
+                                onClick={() => setEditingNote(note)}
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </IconButton>
+                              <IconButton
+                                label={t('notes.deleteNoteTitle')}
+                                variant="danger"
+                                size="sm"
+                                onClick={() => setNoteToDelete(note)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </IconButton>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  !isAddingQuickNote && (
+                    <div className="text-center py-10 bg-surface/80 rounded-[4px] border border-dashed border-border-strong p-6">
+                      <p className="type-title text-primary">{t('notes.emptyTitle')}</p>
+                      <p className="type-hand text-[20px] text-secondary mt-1.5 mb-5 max-w-md mx-auto">
+                        {t('notes.emptyDesc')}
+                      </p>
+                      <Button
+                        size="md"
+                        variant="secondary"
+                        onClick={() => setIsAddingQuickNote(true)}
+                      >
+                        {t('notes.addFirstNote')}
+                      </Button>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* PREFERENCES TAB */}
+            {effectiveTab === 'preferences' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                <TagManager
+                  title={t('preferences.scentsTitle')}
+                  hint={t('preferences.scentsHint')}
+                  tags={person.preferences.scents || []}
+                  placeholder={t('preferences.scentsPlaceholder')}
+                  onChange={(scents) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, scents } })
+                  }
                 />
-                <div className="flex items-center justify-end gap-2">
+
+                <TagManager
+                  title={t('preferences.brandsTitle')}
+                  hint={t('preferences.brandsHint')}
+                  tags={person.preferences.brands || []}
+                  placeholder={t('preferences.brandsPlaceholder')}
+                  onChange={(brands) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, brands } })
+                  }
+                />
+
+                <TagManager
+                  title={t('preferences.colorsTitle')}
+                  hint={t('preferences.colorsHint')}
+                  tags={person.preferences.colors || []}
+                  placeholder={t('preferences.colorsPlaceholder')}
+                  onChange={(colors) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, colors } })
+                  }
+                />
+
+                <TagManager
+                  title={t('preferences.hobbiesTitle')}
+                  hint={t('preferences.hobbiesHint')}
+                  tags={person.preferences.hobbies || []}
+                  placeholder={t('preferences.hobbiesPlaceholder')}
+                  onChange={(hobbies) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, hobbies } })
+                  }
+                />
+
+                <TagManager
+                  title={t('preferences.likesTitle')}
+                  hint={t('preferences.likesHint')}
+                  badgeVariant="success"
+                  tags={person.preferences.likes || []}
+                  placeholder={t('preferences.likesPlaceholder')}
+                  onChange={(likes) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, likes } })
+                  }
+                />
+
+                <TagManager
+                  title={t('preferences.dislikesTitle')}
+                  hint={t('preferences.dislikesHint')}
+                  tags={person.preferences.dislikes || []}
+                  placeholder={t('preferences.dislikesPlaceholder')}
+                  onChange={(dislikes) =>
+                    onUpdatePerson({ preferences: { ...person.preferences, dislikes } })
+                  }
+                />
+              </div>
+            )}
+
+            {/* FOOD TAB */}
+            {effectiveTab === 'food' && (
+              <div className="space-y-5">
+                <div className="bg-danger-bg border-2 border-danger-border rounded-[4px] p-4 sm:p-5 space-y-3 shadow-soft">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-danger shrink-0" />
+                    <h3 className="font-mono text-[11.5px] font-bold text-danger-text uppercase tracking-[0.06em]">
+                      {t('food.allergiesBannerTitle')}
+                    </h3>
+                  </div>
+                  <p className="text-[13px] text-danger-text/90 leading-[1.48]">
+                    {t('food.allergiesBannerDesc')}
+                  </p>
+
+                  <FoodCategory
+                    title={t('food.allergiesTitle')}
+                    variant="allergy"
+                    seamless
+                    items={person.food.allergies || []}
+                    placeholder={t('food.allergiesPlaceholder')}
+                    onChange={(allergies) =>
+                      onUpdatePerson({ food: { ...person.food, allergies } })
+                    }
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                  <FoodCategory
+                    title={t('food.intolerancesTitle')}
+                    hint={t('food.intolerancesHint')}
+                    variant="intolerance"
+                    items={person.food.intolerances || []}
+                    placeholder={t('food.intolerancesPlaceholder')}
+                    onChange={(intolerances) =>
+                      onUpdatePerson({ food: { ...person.food, intolerances } })
+                    }
+                  />
+
+                  <FoodCategory
+                    title={t('food.dietaryTitle')}
+                    hint={t('food.dietaryHint')}
+                    variant="diet"
+                    items={person.food.dietaryRestrictions || []}
+                    placeholder={t('food.dietaryPlaceholder')}
+                    onChange={(dietaryRestrictions) =>
+                      onUpdatePerson({ food: { ...person.food, dietaryRestrictions } })
+                    }
+                  />
+
+                  <FoodCategory
+                    title={t('food.favoriteFoodsTitle')}
+                    variant="favorite"
+                    items={person.food.favoriteFoods || []}
+                    placeholder={t('food.favoriteFoodsPlaceholder')}
+                    onChange={(favoriteFoods) =>
+                      onUpdatePerson({ food: { ...person.food, favoriteFoods } })
+                    }
+                  />
+
+                  <FoodCategory
+                    title={t('food.dislikedFoodsTitle')}
+                    hint={t('food.dislikedFoodsHint')}
+                    variant="disliked"
+                    items={person.food.dislikedFoods || []}
+                    placeholder={t('food.dislikedFoodsPlaceholder')}
+                    onChange={(dislikedFoods) =>
+                      onUpdatePerson({ food: { ...person.food, dislikedFoods } })
+                    }
+                  />
+                </div>
+
+                <div className="sticky-yellow border rounded-[4px] p-4 sm:p-5 space-y-3 shadow-soft">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-border-strong/40">
+                    <div>
+                      <h3 className="font-mono text-[11.5px] font-semibold text-primary uppercase tracking-[0.06em]">
+                        {t('food.kitchenNoteHeading')}
+                      </h3>
+                      <p className="type-hand text-[17px] text-secondary mt-0.5">
+                        {t('food.kitchenNoteSubheading')}
+                      </p>
+                    </div>
+
+                    {!isEditingFoodNote ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setFoodNote(person.food.notes || '');
+                          setIsEditingFoodNote(true);
+                        }}
+                        icon={<Edit3 className="w-3.5 h-3.5" />}
+                      >
+                        {t('food.editNote')}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setIsEditingFoodNote(false)}
+                        >
+                          {t('common.cancel')}
+                        </Button>
+                        <Button size="sm" variant="primary" onClick={handleSaveFoodNote}>
+                          {t('food.saveNote')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {!isEditingFoodNote ? (
+                    <p className="font-serif text-[14.5px] text-primary leading-[1.6] whitespace-pre-wrap pt-1">
+                      {person.food.notes || (
+                        <span className="type-hand text-[18px] text-muted">
+                          {t('food.emptyKitchenNote')}
+                        </span>
+                      )}
+                    </p>
+                  ) : (
+                    <textarea
+                      value={foodNote}
+                      onChange={(e) => setFoodNote(e.target.value)}
+                      placeholder={t('food.kitchenNotePlaceholder')}
+                      aria-label={t('food.kitchenNoteHeading')}
+                      rows={3}
+                      className="w-full paper-ruled border border-border-strong rounded-[3px] p-3 text-[14px] text-primary leading-[1.55] placeholder:text-muted focus:outline-none focus:border-green-700"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* GIFTS TAB */}
+            {effectiveTab === 'gifts' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="type-hand text-[19px] text-secondary">
+                    {personGiftsCountText}
+                  </span>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => {
-                      setIsAddingQuickNote(false);
-                      setNewNoteText('');
-                    }}
+                    variant="primary"
+                    onClick={() => onAddGift(person.id)}
+                    icon={<Plus className="w-3.5 h-3.5" />}
                   >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button size="sm" variant="primary" type="submit" disabled={!newNoteText.trim()}>
-                    {t('notes.saveNote')}
+                    {t('gifts.addGiftIdea')}
                   </Button>
                 </div>
-              </form>
-            )}
 
-            {notes.length > 0 ? (
-              <div className="space-y-4">
-                {notes.map((note) => {
-                  const noteDate = formatShortDate(note.createdAt, language, true);
-                  const editedDate =
-                    note.updatedAt && note.updatedAt !== note.createdAt
-                      ? formatShortDate(note.updatedAt, language, true)
-                      : null;
-
-                  return (
-                    <article
-                      key={note.id}
-                      className="bg-surface border border-border rounded-lg p-5 sm:p-6 flex flex-col justify-between"
-                    >
-                      <div>
-                        {note.category && (
-                          <span className="inline-block text-[11.5px] uppercase font-semibold text-green-900 tracking-[0.04em] mb-2.5 bg-surface-green px-2.5 py-0.5 rounded-sm">
-                            {note.category}
-                          </span>
-                        )}
-                        <p className="text-[15px] text-primary leading-[1.6] whitespace-pre-wrap">
-                          {note.content}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 pt-3.5 border-t border-border flex items-center justify-between text-[12px] text-muted">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span>{t('notes.recordedOn', { date: noteDate })}</span>
-                          {editedDate && <span>· {t('notes.updatedOn', { date: editedDate })}</span>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <IconButton
-                            label={t('notes.editNoteTitle')}
-                            size="sm"
-                            onClick={() => setEditingNote(note)}
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </IconButton>
-                          <IconButton
-                            label={t('notes.deleteNoteTitle')}
-                            variant="danger"
-                            size="sm"
-                            onClick={() => setNoteToDelete(note)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </IconButton>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                {gifts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                    {gifts.map((gift) => (
+                      <GiftCard
+                        key={gift.id}
+                        gift={gift}
+                        showImagePlaceholder={false}
+                        onEdit={() => onEditGift(gift)}
+                        onDelete={() => setGiftToDelete(gift)}
+                        onUpdateStatus={(st) => onUpdateGiftStatus(gift.id, st)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-surface/80 rounded-[4px] border border-dashed border-border-strong p-6">
+                    <div className="w-10 h-10 rounded-full bg-surface-kraft text-primary flex items-center justify-center mx-auto mb-3 border border-border-strong/50">
+                      <GiftIcon className="w-4 h-4" />
+                    </div>
+                    <p className="type-title text-primary">
+                      {t('gifts.noPersonGiftsTitle', { name: person.name })}
+                    </p>
+                    <p className="type-hand text-[19px] text-secondary mt-1 mb-5 max-w-md mx-auto">
+                      {t('gifts.noPersonGiftsDesc')}
+                    </p>
+                    <Button size="md" variant="secondary" onClick={() => onAddGift(person.id)}>
+                      {t('gifts.addFirstGift')}
+                    </Button>
+                  </div>
+                )}
               </div>
-            ) : (
-              !isAddingQuickNote && (
-                <div className="text-center py-12 bg-surface-soft/60 rounded-lg border border-border p-6">
-                  <p className="text-[16px] font-semibold text-primary">{t('notes.emptyTitle')}</p>
-                  <p className="text-[14px] text-secondary mt-1.5 mb-5 max-w-md mx-auto">
-                    {t('notes.emptyDesc')}
-                  </p>
-                  <Button size="md" variant="secondary" onClick={() => setIsAddingQuickNote(true)}>
-                    {t('notes.addFirstNote')}
-                  </Button>
-                </div>
-              )
             )}
           </div>
-        )}
-      </div>
-
-      {/* Delete Card Footer Section */}
-      <div className="pt-8 border-t border-border">
-        <div className="bg-surface border border-danger/30 rounded-lg p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-[14px] font-semibold text-danger">
-              {t('personDetail.deleteCardSectionTitle')}
-            </h3>
-            <p className="text-[13px] text-secondary mt-1 leading-[1.45]">
-              {t('personDetail.deleteCardSectionDesc')}
-            </p>
-          </div>
-          <Button
-            size="md"
-            variant="danger"
-            className="shrink-0 self-start sm:self-center"
-            onClick={() => setIsDeleteConfirmOpen(true)}
-            icon={<Trash2 className="w-4 h-4" />}
-          >
-            {t('personDetail.deleteCardBtn')}
-          </Button>
         </div>
       </div>
+
+      {/* Mobile Delete Card Footer Section */}
+      {!isDesktopSpread && (
+        <div className="pt-6 border-t border-dashed border-border">
+          <div className="bg-surface/85 border border-danger-border rounded-[4px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-mono text-[12px] font-semibold uppercase tracking-[0.05em] text-danger-text">
+                {t('personDetail.deleteCardSectionTitle')}
+              </h3>
+              <p className="text-[13px] text-secondary mt-1 leading-[1.45]">
+                {t('personDetail.deleteCardSectionDesc')}
+              </p>
+            </div>
+            <Button
+              size="md"
+              variant="danger"
+              className="shrink-0 self-start sm:self-center"
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              icon={<Trash2 className="w-4 h-4" />}
+            >
+              {t('personDetail.deleteCardBtn')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Permanent Card Delete Confirmation */}
       <ConfirmDialog

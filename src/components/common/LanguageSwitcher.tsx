@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n/LanguageContext';
 import { Language } from '../../i18n/types';
 import { useToast } from '../../hooks/useToast';
 import { resolveTranslation } from '../../i18n/helpers';
+import { SegmentedControl } from './SegmentedControl';
 
 interface LanguageSwitcherProps {
   compact?: boolean;
@@ -16,7 +17,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   showIcon = false,
   notifyOnSwitch = true,
 }) => {
-  const { language, setLanguage } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const { showToast } = useToast();
 
   const handleSelect = async (lang: Language) => {
@@ -28,34 +29,27 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   };
 
   return (
-    <div
-      className="inline-flex items-center gap-2"
-      role="group"
-      aria-label="Language switcher"
-    >
+    <div className="inline-flex items-center gap-2">
       {showIcon && <Globe className="w-4 h-4 text-secondary shrink-0" />}
-      <div className="inline-flex items-center bg-surface-soft border border-border rounded-full p-0.5">
-        {(['en', 'ru'] as Language[]).map((lang) => {
-          const isActive = language === lang;
-          return (
-            <button
-              key={lang}
-              type="button"
-              onClick={() => handleSelect(lang)}
-              aria-pressed={isActive}
-              className={`font-semibold rounded-full transition-[background-color,color] duration-[180ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700/40 ${
-                compact ? 'text-[11px] uppercase px-2.5 py-0.5' : 'text-[12.5px] px-3 py-1'
-              } ${
-                isActive
-                  ? 'bg-surface-green text-green-900 shadow-soft'
-                  : 'text-secondary hover:text-primary'
-              }`}
-            >
-              {compact ? lang : lang === 'en' ? 'English' : 'Русский'}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl<Language>
+        ariaLabel={t('settings.languageLabel')}
+        roleMode="radiogroup"
+        size={compact ? 'xs' : 'sm'}
+        value={language}
+        onChange={handleSelect}
+        options={[
+          {
+            value: 'en',
+            label: compact ? 'EN' : 'English',
+            ariaLabel: 'English',
+          },
+          {
+            value: 'ru',
+            label: compact ? 'RU' : 'Русский',
+            ariaLabel: 'Русский',
+          },
+        ]}
+      />
     </div>
   );
 };

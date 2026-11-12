@@ -36,10 +36,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       }}
       title={title}
       maxWidth="sm"
-    >
-      <div className="space-y-5">
-        <p className="text-[14px] text-secondary leading-[1.55]">{description}</p>
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+      footer={
+        <div className="flex items-center justify-end gap-2.5">
           <Button
             type="button"
             variant="ghost"
@@ -59,7 +57,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {confirmLabel || t('common.delete')}
           </Button>
         </div>
-      </div>
+      }
+    >
+      <p className="text-[14px] text-secondary leading-[1.55]">{description}</p>
     </Modal>
   );
 };
