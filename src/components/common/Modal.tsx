@@ -41,6 +41,10 @@ export const Modal: React.FC<ModalProps> = ({
   const isMobileSheet = useMediaPreference('(max-width: 639px)');
   const { registerModal, updateModalProgress, unregisterModal, isTopModal } = useModalDepth();
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const isTopModalRef = useRef(isTopModal);
+  isTopModalRef.current = isTopModal;
 
   const { rendered, sheetRef, backdropRef, dragHandlers } = useSheetDrag({
     isOpen,
@@ -86,11 +90,11 @@ export const Modal: React.FC<ModalProps> = ({
     }, 10);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isTopModal(modalId)) return;
+      if (!isTopModalRef.current(modalId)) return;
 
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -127,7 +131,7 @@ export const Modal: React.FC<ModalProps> = ({
         prev.focus();
       }
     };
-  }, [isOpen, modalId, isTopModal, onClose, sheetRef]);
+  }, [isOpen, modalId, sheetRef]);
 
   if (!rendered || typeof document === 'undefined') return null;
 
