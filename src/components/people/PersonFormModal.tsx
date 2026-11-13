@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Trash2 } from 'lucide-react';
+import { Camera, Trash2, Calendar } from 'lucide-react';
 import { Person, CreatePersonInput, UpdatePersonInput } from '../../types/person';
 import { processImageFile } from '../../services/imageService';
 import { Modal } from '../common/Modal';
@@ -38,6 +38,17 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const datePickerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -164,6 +175,36 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
     onClose();
   };
 
+  const relationshipChoices = [
+    t('personForm.relSister'),
+    t('personForm.relBrother'),
+    t('personForm.relPartner'),
+    t('personForm.relFriend'),
+    t('personForm.relMother'),
+    t('personForm.relFather'),
+    t('personForm.relColleague'),
+  ];
+
+  const bioStarters = [
+    t('personForm.bioStarterCoffee'),
+    t('personForm.bioStarterCreative'),
+    t('personForm.bioStarterIntrovert'),
+    t('personForm.bioStarterFamily'),
+    t('personForm.bioStarterTravel'),
+  ];
+
+  const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
+  const ringSizes = ['15', '15.5', '16', '16.5', '17', '17.5', '18'];
+
+  const allergyChoices = [
+    t('personForm.allergyNuts'),
+    t('personForm.allergyDairy'),
+    t('personForm.allergyGluten'),
+    t('personForm.allergySeafood'),
+    t('personForm.allergyCitrus'),
+  ];
+
   return (
     <>
       <Modal
@@ -225,7 +266,10 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
             </div>
           </div>
 
+          {/* Full Name */}
           <Input
+            id="person-form-name"
+            ref={nameInputRef}
             label={t('personForm.nameLabel')}
             placeholder={t('personForm.namePlaceholder')}
             value={name}
@@ -234,66 +278,280 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
               if (error) setError('');
             }}
             error={error}
-            autoFocus
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Relationship with Interactive Choice Chips */}
+          <div className="space-y-1.5">
             <Input
+              id="person-form-relationship"
               label={t('personForm.relationshipLabel')}
               placeholder={t('personForm.relationshipPlaceholder')}
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
             />
-
-            <Input
-              label={t('personForm.birthdayLabel')}
-              placeholder={t('personForm.birthdayPlaceholder')}
-              value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
-            />
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] text-muted font-medium mr-0.5">
+                {t('personForm.quickSuggestions')}
+              </span>
+              {relationshipChoices.map((choice) => {
+                const isSelected = relationship.trim().toLowerCase() === choice.toLowerCase();
+                return (
+                  <button
+                    key={choice}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setRelationship(isSelected ? '' : choice)}
+                    className={`px-2.5 py-0.5 text-[11.5px] rounded-full border transition-[colors,box-shadow] duration-150 ${
+                      isSelected
+                        ? 'bg-green-700 text-inverse border-green-700 font-medium shadow-xs'
+                        : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary hover:border-green-300'
+                    }`}
+                  >
+                    {choice}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <Textarea
-            label={t('personForm.bioLabel')}
-            placeholder={t('personForm.bioPlaceholder')}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={2}
-          />
-
-          <div className="pt-3 border-t border-border">
-            <span className="text-[12px] font-semibold text-secondary uppercase tracking-wider block mb-2.5">
-              {t('personForm.keySizesLabel')}
-            </span>
-            <div className="grid grid-cols-3 gap-2.5">
+          {/* Birthday with Text Input + Native Date Picker Button */}
+          <div className="space-y-1.5">
+            <div className="relative">
               <Input
-                label={t('personDetail.clothingLabel')}
-                placeholder={t('personDetail.clothingPlaceholder')}
-                value={clothingSize}
-                onChange={(e) => setClothingSize(e.target.value)}
+                id="person-form-birthday"
+                label={t('personForm.birthdayLabel')}
+                placeholder={t('personForm.birthdayPlaceholder')}
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+                className="pr-10"
               />
-              <Input
-                label={t('personDetail.shoeLabel')}
-                placeholder={t('personDetail.shoePlaceholder')}
-                value={shoeSize}
-                onChange={(e) => setShoeSize(e.target.value)}
-              />
-              <Input
-                label={t('personDetail.ringLabel')}
-                placeholder={t('personDetail.ringPlaceholder')}
-                value={ringSize}
-                onChange={(e) => setRingSize(e.target.value)}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (datePickerInputRef.current) {
+                    try {
+                      (datePickerInputRef.current as any).showPicker?.();
+                    } catch {
+                      datePickerInputRef.current.focus();
+                    }
+                  }
+                }}
+                title={t('personForm.pickDate')}
+                aria-label={t('personForm.pickDate')}
+                className="absolute right-2.5 top-[32px] text-secondary hover:text-green-700 p-1.5 rounded-md hover:bg-surface-soft transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+              </button>
+              <input
+                ref={datePickerInputRef}
+                type="date"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="absolute opacity-0 pointer-events-none w-0 h-0 right-0 bottom-0"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setBirthday(e.target.value);
+                  }
+                }}
               />
             </div>
           </div>
 
-          <Input
-            label={t('personForm.allergiesLabel')}
-            placeholder={t('personForm.allergiesPlaceholder')}
-            value={allergiesInput}
-            onChange={(e) => setAllergiesInput(e.target.value)}
-            hint={t('personForm.allergiesHint')}
-          />
+          {/* Short Bio with Quick Starter Prompts */}
+          <div className="space-y-1.5">
+            <Textarea
+              id="person-form-bio"
+              label={t('personForm.bioLabel')}
+              placeholder={t('personForm.bioPlaceholder')}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={2}
+            />
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] text-muted font-medium mr-0.5">
+                {t('personForm.quickSuggestions')}
+              </span>
+              {bioStarters.map((starter) => {
+                const isSelected = bio.toLowerCase().includes(starter.toLowerCase());
+                return (
+                  <button
+                    key={starter}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setBio((curr) => {
+                        const trimmed = curr.trim();
+                        if (!trimmed) return starter;
+                        if (trimmed.toLowerCase().includes(starter.toLowerCase())) {
+                          return trimmed
+                            .replace(new RegExp(`(^|[,;\\s]+)${starter}([,;\\s]+|$)`, 'gi'), ' ')
+                            .trim();
+                        }
+                        return `${trimmed}, ${starter}`;
+                      });
+                    }}
+                    className={`px-2.5 py-0.5 text-[11.5px] rounded-full border transition-[colors,box-shadow] duration-150 ${
+                      isSelected
+                        ? 'bg-green-700 text-inverse border-green-700 font-medium shadow-xs'
+                        : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary hover:border-green-300'
+                    }`}
+                  >
+                    {starter}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Key Sizes with Size Selector Chips */}
+          <div className="pt-3 border-t border-border">
+            <span className="text-[12px] font-semibold text-secondary uppercase tracking-wider block mb-2.5">
+              {t('personForm.keySizesLabel')}
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Input
+                  id="person-form-clothing"
+                  label={t('personDetail.clothingLabel')}
+                  placeholder={t('personDetail.clothingPlaceholder')}
+                  value={clothingSize}
+                  onChange={(e) => setClothingSize(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {clothingSizes.map((size) => {
+                    const isSelected = clothingSize.trim().toUpperCase() === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setClothingSize(isSelected ? '' : size)}
+                        className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${
+                          isSelected
+                            ? 'bg-green-700 text-inverse border-green-700 font-medium'
+                            : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Input
+                  id="person-form-shoe"
+                  label={t('personDetail.shoeLabel')}
+                  placeholder={t('personDetail.shoePlaceholder')}
+                  value={shoeSize}
+                  onChange={(e) => setShoeSize(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {shoeSizes.slice(0, 6).map((size) => {
+                    const isSelected = shoeSize.trim() === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setShoeSize(isSelected ? '' : size)}
+                        className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${
+                          isSelected
+                            ? 'bg-green-700 text-inverse border-green-700 font-medium'
+                            : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Input
+                  id="person-form-ring"
+                  label={t('personDetail.ringLabel')}
+                  placeholder={t('personDetail.ringPlaceholder')}
+                  value={ringSize}
+                  onChange={(e) => setRingSize(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {ringSizes.map((size) => {
+                    const isSelected = ringSize.trim() === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setRingSize(isSelected ? '' : size)}
+                        className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${
+                          isSelected
+                            ? 'bg-green-700 text-inverse border-green-700 font-medium'
+                            : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Medical Allergies with Multi-Select Choice Chips */}
+          <div className="space-y-1.5">
+            <Input
+              id="person-form-allergies"
+              label={t('personForm.allergiesLabel')}
+              placeholder={t('personForm.allergiesPlaceholder')}
+              value={allergiesInput}
+              onChange={(e) => setAllergiesInput(e.target.value)}
+              hint={t('personForm.allergiesHint')}
+            />
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] text-muted font-medium mr-0.5">
+                {t('personForm.quickSuggestions')}
+              </span>
+              {allergyChoices.map((allergy) => {
+                const activeList = allergiesInput
+                  .split(',')
+                  .map((s) => s.trim().toLowerCase())
+                  .filter(Boolean);
+                const isSelected = activeList.includes(allergy.toLowerCase());
+                return (
+                  <button
+                    key={allergy}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      const currentItems = allergiesInput
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      let next: string[];
+                      if (currentItems.some((s) => s.toLowerCase() === allergy.toLowerCase())) {
+                        next = currentItems.filter((s) => s.toLowerCase() !== allergy.toLowerCase());
+                      } else {
+                        next = [...currentItems, allergy];
+                      }
+                      setAllergiesInput(next.join(', '));
+                    }}
+                    className={`px-2.5 py-0.5 text-[11.5px] rounded-full border transition-[colors,box-shadow] duration-150 ${
+                      isSelected
+                        ? 'bg-green-700 text-inverse border-green-700 font-medium shadow-xs'
+                        : 'bg-surface-soft text-secondary border-border hover:bg-surface-green/50 hover:text-primary hover:border-green-300'
+                    }`}
+                  >
+                    {allergy}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </form>
       </Modal>
 
